@@ -108,6 +108,16 @@ export const DEFAULT_SETTINGS: Settings = {
   adminPasscode: "mugabe",
 };
 
+/** Ships in /public, so every visitor on every device gets it. A photo
+ *  uploaded in the admin only overrides it in the browser that uploaded it. */
+export const DEFAULT_COACH_PHOTO = "/coach.jpg";
+
+/** An empty setting means "no override", not "no photo" — so a browser that
+ *  has saved `coachPhoto: ""` still shows the built-in photo. */
+export function coachPhotoSrc(settings: Settings) {
+  return settings.coachPhoto.trim() || DEFAULT_COACH_PHOTO;
+}
+
 export const DEFAULT_DB: DB = {
   version: DB_VERSION,
   leads: [],

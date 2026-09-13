@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
+import { coachPhotoSrc } from "@/lib/store";
 import { useDB } from "@/lib/use-store";
 
 const pillars = [
@@ -20,7 +22,12 @@ const pillars = [
 
 export default function Coach() {
   const { settings } = useDB();
-  const photo = settings.coachPhoto.trim();
+  const photo = coachPhotoSrc(settings);
+
+  // Remembering which src failed (rather than a boolean) resets on its own
+  // when the photo changes, with no effect needed.
+  const [failedSrc, setFailedSrc] = useState("");
+  const showPhoto = failedSrc !== photo;
 
   return (
     <section
@@ -56,7 +63,7 @@ export default function Coach() {
           </div>
 
           <div className="relative aspect-[4/5] w-full max-w-xl overflow-hidden rounded-[2rem] border border-white/10 bg-[#0a0a0a] lg:max-w-none">
-            {photo ? (
+            {showPhoto ? (
               <>
                 <Image
                   src={photo}
@@ -64,10 +71,11 @@ export default function Coach() {
                   fill
                   // Roughly half the 80rem container from lg, full width below.
                   sizes="(min-width: 1024px) 40rem, 100vw"
-                  // The source may be an uploaded data URL or a remote link,
-                  // neither of which the optimizer can take without extra
-                  // config. Uploads are already downscaled on the way in.
-                  unoptimized
+                  // A file shipped in /public goes through the optimizer, so a
+                  // phone downloads a phone-sized image. Uploaded data URLs and
+                  // remote links can't be optimized without extra config.
+                  unoptimized={!photo.startsWith("/")}
+                  onError={() => setFailedSrc(photo)}
                   className="object-cover object-top"
                 />
 

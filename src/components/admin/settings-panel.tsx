@@ -3,7 +3,9 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 import {
+  DEFAULT_COACH_PHOTO,
   STORAGE_KEY,
+  coachPhotoSrc,
   exportJSON,
   importJSON,
   resetAll,
@@ -172,7 +174,8 @@ function CoachPhotoCard() {
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
 
-  const photo = settings.coachPhoto.trim();
+  const override = settings.coachPhoto.trim();
+  const photo = coachPhotoSrc(settings);
 
   async function handleFile(file: File) {
     setBusy(true);
@@ -218,7 +221,7 @@ function CoachPhotoCard() {
               alt="Current coach photo"
               fill
               sizes="10rem"
-              unoptimized
+              unoptimized={!photo.startsWith("/")}
               className="object-cover object-top"
             />
           ) : (
@@ -231,19 +234,29 @@ function CoachPhotoCard() {
         <div>
           <div className="flex flex-wrap gap-2">
             <Btn variant="gold" onClick={() => fileInput.current?.click()}>
-              {busy ? "Working…" : photo ? "Replace photo" : "Upload photo"}
+              {busy ? "Working…" : "Upload a photo"}
             </Btn>
 
-            {photo && (
+            {override.startsWith("data:") && (
+              <a
+                href={override}
+                download="coach.jpg"
+                className="inline-flex items-center justify-center rounded-full border border-white/15 px-5 py-2.5 text-xs font-black uppercase tracking-[0.1em] text-white/80 transition hover:border-white/40 hover:text-white"
+              >
+                Download this photo
+              </a>
+            )}
+
+            {override && (
               <Btn
                 variant="danger"
                 onClick={() => {
                   saveSettings({ coachPhoto: "" });
-                  setNote("Photo removed.");
+                  setNote("Back to the built-in photo.");
                   setError("");
                 }}
               >
-                Remove
+                Use built-in photo
               </Btn>
             )}
           </div>
@@ -261,15 +274,17 @@ function CoachPhotoCard() {
           />
 
           <p className="mt-4 text-xs leading-6 text-white/35">
-            JPG, PNG, WebP or AVIF. Large photos are scaled down to 1400px
-            before saving, so they fit in this browser&apos;s storage.
+            An uploaded photo only changes what <strong>this browser</strong>{" "}
+            shows. Every other visitor sees the built-in photo,{" "}
+            <code>public{DEFAULT_COACH_PHOTO}</code> in the project — replace that
+            file and redeploy to change it for everyone.
           </p>
 
           <div className="mt-4">
             <Field
               label="Or use an image path / URL"
-              value={photo.startsWith("data:") ? "" : photo}
-              placeholder="/coach.jpg"
+              value={override.startsWith("data:") ? "" : override}
+              placeholder={DEFAULT_COACH_PHOTO}
               onChange={(v) => saveSettings({ coachPhoto: v })}
             />
 
