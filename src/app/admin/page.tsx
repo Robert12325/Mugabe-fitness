@@ -22,6 +22,11 @@ import {
 import { inputClass } from "@/components/admin/ui";
 import { TODAY } from "@/lib/billing";
 import {
+  refreshBilling,
+  startBillingSync,
+  stopBillingSync,
+} from "@/lib/billing-sync";
+import {
   loadEnquiries,
   signIn,
   signOut,
@@ -81,13 +86,21 @@ export default function AdminPage() {
     };
 
     load();
+    void startBillingSync(() => setUnlocked(false));
 
-    // Coming back to the tab picks up requests sent while it was hidden.
-    window.addEventListener("focus", load);
+    // Returning to the tab picks up enquiries and payment changes made on
+    // other devices while it was hidden.
+    const onFocus = () => {
+      load();
+      refreshBilling();
+    };
+
+    window.addEventListener("focus", onFocus);
 
     return () => {
       active = false;
-      window.removeEventListener("focus", load);
+      window.removeEventListener("focus", onFocus);
+      stopBillingSync();
     };
   }, [unlocked, apply]);
 

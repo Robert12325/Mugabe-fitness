@@ -17,6 +17,7 @@ import {
 } from "@/lib/store";
 import { LEAD_STATUSES, type Lead, type LeadStatus } from "@/lib/types";
 import { useDB } from "@/lib/use-store";
+import EmailText from "./email-text";
 import { STATUS_PALETTE } from "./status-palette";
 import { Btn, Card, EmptyState, SectionTitle, inputClass } from "./ui";
 
@@ -403,8 +404,10 @@ function LeadRow({
 
       {open && (
         <div className="border-t border-white/10 px-5 py-5">
-          <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-5">
-            <Detail label="Email" value={lead.email} />
+          <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]">
+            <Detail label="Email" value={lead.email}>
+              <EmailText email={lead.email} />
+            </Detail>
             <Detail label="Phone" value={lead.phone} />
             <Detail label="Program" value={programName} />
             <Detail label="Preferred time" value={lead.slot} />
@@ -495,14 +498,24 @@ function LeadRow({
   );
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
+function Detail({
+  label,
+  value,
+  children,
+}: {
+  label: string;
+  value: string;
+  children?: React.ReactNode;
+}) {
   return (
-    <div>
+    <div className="min-w-0">
       <dt className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
         {label}
       </dt>
 
-      <dd className="mt-1.5 break-words text-white/70">{value || "—"}</dd>
+      <dd className="mt-1.5 break-words text-white/70">
+        {value ? (children ?? value) : "—"}
+      </dd>
     </div>
   );
 }

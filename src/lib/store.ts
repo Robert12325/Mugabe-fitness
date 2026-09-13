@@ -663,3 +663,13 @@ export function paymentsToCSV(
 export function replaceLeads(leads: Lead[]) {
   return update((db) => ({ ...db, leads: leads.map(normalizeLead) }));
 }
+
+/** Replaces this browser copy of clients and invoices with the server list.
+ *  Used by the billing sync; normalising keeps the local shape exact. */
+export function replaceBilling(clients: Client[], payments: Payment[]) {
+  return update((db) => ({
+    ...db,
+    clients: clients.map(normalizeClient),
+    payments: payments.map(normalizePayment),
+  }));
+}

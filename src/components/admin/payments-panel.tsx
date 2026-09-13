@@ -24,6 +24,8 @@ import {
 } from "@/lib/store";
 import type { Client, Payment, PaymentStatus } from "@/lib/types";
 import { useDB } from "@/lib/use-store";
+import BillingSyncNotice from "./billing-sync-notice";
+import EmailText from "./email-text";
 import { Btn, Card, EmptyState, Field, SectionTitle, inputClass } from "./ui";
 
 /* Status colours reuse the enquiry palette's reasoning: validated against the
@@ -131,6 +133,8 @@ export default function PaymentsPanel() {
 
   return (
     <div className="space-y-6">
+      <BillingSyncNotice />
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Collected all time" value={formatMoney(totals.collected)} />
         <Stat label="Outstanding" value={formatMoney(totals.outstanding)} />
@@ -359,7 +363,11 @@ function ClientRow({
       {open && (
         <div className="border-t border-white/10 px-5 py-5">
           <div className="mb-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-white/55">
-            {client.email && <span>{client.email}</span>}
+            {client.email && (
+              <span className="min-w-0 break-words">
+                <EmailText email={client.email} />
+              </span>
+            )}
             {client.phone && <span>{client.phone}</span>}
             {client.slot && <span>{client.slot}</span>}
             <span>Bills on day {client.billingDay}</span>
