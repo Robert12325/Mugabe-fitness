@@ -102,8 +102,8 @@ export const DEFAULT_SETTINGS: Settings = {
   brandName: "MUGABE",
   brandSuffix: "FITNESS",
   tagline: "Rise. Grind. Shine.",
-  coachEmail: "coach@mugabefitness.com",
-  coachPhone: "+91 00000 00000",
+  coachEmail: "robertmkamarajr@gmail.com",
+  coachPhone: "+917879715012",
   coachPhoto: "",
   adminPasscode: "mugabe",
 };
