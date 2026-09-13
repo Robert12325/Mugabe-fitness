@@ -201,13 +201,9 @@ export default function EnquiryForm() {
               or email you gave to get you started.
             </p>
 
-            <button
-              type="button"
-              onClick={() => setPhase("idle")}
-              className="mt-8 rounded-full bg-[#d4af37] px-6 py-3 text-xs font-black uppercase tracking-[0.12em] text-black transition hover:bg-white"
-            >
-              Send another
-            </button>
+            <p className="mt-8 inline-block rounded-full bg-[#d4af37] px-6 py-3 text-xs font-black uppercase tracking-[0.12em] text-black">
+              Thank you
+            </p>
           </div>
         ) : (
           <form
