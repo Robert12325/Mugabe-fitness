@@ -13,6 +13,7 @@ import {
 } from "@/lib/store";
 import { formatBytes, prepareImage } from "@/lib/image";
 import { useDB } from "@/lib/use-store";
+import CoachMediaCard from "./coach-media-card";
 import { Btn, Card, Field, SectionTitle } from "./ui";
 
 export default function SettingsPanel() {
@@ -99,6 +100,8 @@ export default function SettingsPanel() {
           treat it as real security.
         </p>
       </Card>
+
+      <CoachMediaCard />
 
       <CoachPhotoCard />
 

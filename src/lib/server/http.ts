@@ -8,6 +8,16 @@ export function jsonOk(data: unknown, status = 200) {
   return NextResponse.json(data, { status, headers: NO_STORE });
 }
 
+/** For public, non-personal data only: Vercel's CDN may reuse it for
+ *  `sMaxAge` seconds, and browsers always check back. */
+export function jsonPublic(data: unknown, sMaxAge: number) {
+  return NextResponse.json(data, {
+    headers: {
+      "Cache-Control": `public, max-age=0, s-maxage=${sMaxAge}, stale-while-revalidate=300`,
+    },
+  });
+}
+
 export function jsonError(status: number, message: string) {
   return NextResponse.json({ error: message }, { status, headers: NO_STORE });
 }

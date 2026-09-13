@@ -1,7 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import VideoFrame from "@/components/video-frame";
+import { parseVideoUrl, type CoachMedia } from "@/lib/coach-media";
+import { fetchCoachMedia } from "@/lib/coach-media-client";
 import { coachPhotoSrc } from "@/lib/store";
 import { useDB } from "@/lib/use-store";
 
@@ -28,6 +31,31 @@ export default function Coach() {
   // when the photo changes, with no effect needed.
   const [failedSrc, setFailedSrc] = useState("");
   const showPhoto = failedSrc !== photo;
+
+  // Photo or video is a site-wide choice stored on the server. Until it
+  // arrives — or if the database isn't reachable — the photo shows.
+  const [media, setMedia] = useState<CoachMedia | null>(null);
+  const [failedVideo, setFailedVideo] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    fetchCoachMedia().then((result) => {
+      if (active && result.state === "online") setMedia(result.media);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const video = media?.mode === "video" ? parseVideoUrl(media.videoUrl) : null;
+  const videoKey = video
+    ? video.kind === "file"
+      ? video.src
+      : video.embedUrl
+    : "";
+  const showVideo = video !== null && failedVideo !== videoKey;
 
   return (
     <section
@@ -63,7 +91,14 @@ export default function Coach() {
           </div>
 
           <div className="relative aspect-[4/5] w-full max-w-xl overflow-hidden rounded-[2rem] border border-white/10 bg-[#0a0a0a] lg:max-w-none">
-            {showPhoto ? (
+            {showVideo && video ? (
+              <VideoFrame
+                source={video}
+                title="Meet your coach at Mugabe Fitness"
+                poster={showPhoto ? photo : undefined}
+                onError={() => setFailedVideo(videoKey)}
+              />
+            ) : showPhoto ? (
               <>
                 <Image
                   src={photo}

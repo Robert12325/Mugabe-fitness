@@ -54,6 +54,7 @@ type BtnProps = {
   variant?: "gold" | "ghost" | "danger";
   size?: "sm" | "md";
   title?: string;
+  disabled?: boolean;
 };
 
 export function Btn({
@@ -63,6 +64,7 @@ export function Btn({
   variant = "ghost",
   size = "md",
   title,
+  disabled = false,
 }: BtnProps) {
   const base =
     "inline-flex items-center justify-center gap-2 rounded-full font-black uppercase tracking-[0.1em] transition disabled:opacity-40";
@@ -83,6 +85,7 @@ export function Btn({
       type={type}
       onClick={onClick}
       title={title}
+      disabled={disabled}
       className={`${base} ${sizes[size]} ${variants[variant]}`}
     >
       {children}
