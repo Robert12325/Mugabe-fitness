@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import ContactScene from "@/components/motion/contact-scene";
-import { addLead } from "@/lib/store";
+import { submitEnquiry } from "@/lib/enquiries-client";
 import { useDB } from "@/lib/use-store";
 
 const GOALS = [
@@ -21,6 +21,8 @@ const EMPTY = {
   slot: "",
   goal: GOALS[0],
   message: "",
+  /** Honeypot — hidden from people, filled in by bots. */
+  company: "",
 };
 
 const inputClass =
@@ -29,11 +31,14 @@ const inputClass =
 const labelClass =
   "mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-black/55";
 
+type SubmitError = { message: string; offerDirectContact: boolean };
+
 export default function EnquiryForm() {
   const db = useDB();
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [done, setDone] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "sending" | "sent">("idle");
+  const [submitError, setSubmitError] = useState<SubmitError | null>(null);
 
   const programs = useMemo(
     () => db.programs.filter((program) => program.active),
@@ -51,6 +56,8 @@ export default function EnquiryForm() {
         .map((program) => ({ name: program.name, slots: program.slots }));
 
   const hasSlots = slotGroups.some((group) => group.slots.length > 0);
+
+  const coachDigits = db.settings.coachPhone.replace(/\D/g, "");
 
   function set(field: keyof typeof EMPTY, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -77,33 +84,70 @@ export default function EnquiryForm() {
       next.email = "Please enter a valid email.";
     }
 
-    if (form.phone.replace(/\D/g, "").length < 7) {
+    const digits = form.phone.replace(/\D/g, "").length;
+
+    if (digits < 7 || digits > 15) {
       next.phone = "Please enter a valid phone number.";
     }
 
     return next;
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  /** The visitor's details, ready to send to the coach on WhatsApp if the
+   *  online form can't deliver them. */
+  function whatsappLink() {
+    const lines = [
+      "Hi, I'd like to start training.",
+      `Name: ${form.name.trim()}`,
+      `Phone: ${form.phone.trim()}`,
+      `Email: ${form.email.trim()}`,
+      `Program: ${selected?.name ?? "Not sure yet"}`,
+      form.slot ? `Preferred time: ${form.slot}` : "",
+      `Goal: ${form.goal}`,
+      form.message.trim() ? `Message: ${form.message.trim()}` : "",
+    ].filter(Boolean);
+
+    return `https://wa.me/${coachDigits}?text=${encodeURIComponent(lines.join("\n"))}`;
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (phase === "sending") return;
 
     const found = validate();
     setErrors(found);
 
     if (Object.keys(found).length > 0) return;
 
-    addLead({
+    setPhase("sending");
+    setSubmitError(null);
+
+    const result = await submitEnquiry({
       name: form.name.trim(),
       email: form.email.trim(),
       phone: form.phone.trim(),
-      programId: form.programId || programs[0]?.id || "",
+      // "" means "Not sure yet" — never quietly default to a program.
+      programId: form.programId,
       slot: form.slot,
       goal: form.goal,
       message: form.message.trim(),
+      company: form.company,
     });
 
-    setForm(EMPTY);
-    setDone(true);
+    if (result.ok) {
+      setForm(EMPTY);
+      setPhase("sent");
+      return;
+    }
+
+    // Keep what they typed, and never claim success for a request that
+    // didn't arrive.
+    setPhase("idle");
+    setSubmitError({
+      message: result.message,
+      offerDirectContact: result.kind !== "invalid",
+    });
   }
 
   return (
@@ -141,22 +185,25 @@ export default function EnquiryForm() {
           </dl>
         </div>
 
-        {done ? (
-          <div className="rounded-[2rem] border border-black/20 bg-black p-10 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.5)]">
-            <div className="text-4xl">✓</div>
+        {phase === "sent" ? (
+          <div
+            role="status"
+            className="rounded-[2rem] border border-black/20 bg-black p-10 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.5)]"
+          >
+            <div className="text-4xl text-white">✓</div>
 
             <h3 className="mt-5 text-2xl font-black uppercase text-white">
-              Request received
+              Request sent
             </h3>
 
-            <p className="mt-3 text-sm leading-7 text-white/50">
-              Your details are saved. I&apos;ll reach out on the contact you
-              gave to get you started.
+            <p className="mt-3 text-sm leading-7 text-white/60">
+              Your details reached me. I&apos;ll get back to you on the phone
+              or email you gave to get you started.
             </p>
 
             <button
               type="button"
-              onClick={() => setDone(false)}
+              onClick={() => setPhase("idle")}
               className="mt-8 rounded-full bg-[#d4af37] px-6 py-3 text-xs font-black uppercase tracking-[0.12em] text-black transition hover:bg-white"
             >
               Send another
@@ -168,6 +215,23 @@ export default function EnquiryForm() {
             noValidate
             className="rounded-[2rem] border border-black/20 bg-[#d4af37]/70 p-7 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-9"
           >
+            {/* Honeypot: off-screen and hidden from assistive tech. Real
+                visitors never fill it; bots filling every input do. */}
+            <div
+              aria-hidden
+              className="absolute -left-[9999px] h-px w-px overflow-hidden"
+            >
+              <label htmlFor="company">Company</label>
+              <input
+                id="company"
+                name="company"
+                tabIndex={-1}
+                autoComplete="off"
+                value={form.company}
+                onChange={(event) => set("company", event.target.value)}
+              />
+            </div>
+
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
                 <label htmlFor="name" className={labelClass}>
@@ -176,6 +240,8 @@ export default function EnquiryForm() {
 
                 <input
                   id="name"
+                  autoComplete="name"
+                  maxLength={100}
                   value={form.name}
                   onChange={(event) => set("name", event.target.value)}
                   placeholder="Your full name"
@@ -196,6 +262,10 @@ export default function EnquiryForm() {
 
                 <input
                   id="phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  maxLength={30}
                   value={form.phone}
                   onChange={(event) => set("phone", event.target.value)}
                   placeholder="+91 00000 00000"
@@ -217,6 +287,10 @@ export default function EnquiryForm() {
 
               <input
                 id="email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                maxLength={200}
                 value={form.email}
                 onChange={(event) => set("email", event.target.value)}
                 placeholder="you@example.com"
@@ -304,7 +378,7 @@ export default function EnquiryForm() {
                       ))}
                 </select>
 
-                <p className="mt-2 text-xs text-black/45">
+                <p className="mt-2 text-xs text-black/60">
                   {selected
                     ? "Slots available for " + selected.name + "."
                     : "Pick a program above to narrow these down."}
@@ -320,6 +394,7 @@ export default function EnquiryForm() {
               <textarea
                 id="message"
                 rows={4}
+                maxLength={2000}
                 value={form.message}
                 onChange={(event) => set("message", event.target.value)}
                 placeholder="Injuries, schedule, experience level…"
@@ -327,11 +402,43 @@ export default function EnquiryForm() {
               />
             </div>
 
+            {submitError && (
+              <div
+                role="alert"
+                className="mt-6 rounded-2xl border border-black/25 bg-black/[0.08] p-4 text-sm leading-6 text-black"
+              >
+                <p className="font-bold">{submitError.message}</p>
+
+                {submitError.offerDirectContact && coachDigits && (
+                  <p className="mt-2 text-black/80">
+                    You can also reach me directly on{" "}
+                    <a
+                      href={whatsappLink()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-black underline underline-offset-4"
+                    >
+                      WhatsApp
+                    </a>{" "}
+                    or{" "}
+                    <a
+                      href={`tel:+${coachDigits}`}
+                      className="font-black underline underline-offset-4"
+                    >
+                      call {db.settings.coachPhone}
+                    </a>
+                    .
+                  </p>
+                )}
+              </div>
+            )}
+
             <button
               type="submit"
-              className="mt-7 w-full rounded-full bg-black px-7 py-4 text-sm font-black uppercase tracking-wider text-white transition hover:bg-white hover:text-black"
+              disabled={phase === "sending"}
+              className="mt-7 w-full rounded-full bg-black px-7 py-4 text-sm font-black uppercase tracking-wider text-white transition hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-60 disabled:hover:bg-black disabled:hover:text-white"
             >
-              Start Training
+              {phase === "sending" ? "Sending…" : "Start Training"}
             </button>
           </form>
         )}

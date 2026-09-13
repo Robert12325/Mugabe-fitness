@@ -657,3 +657,9 @@ export function paymentsToCSV(
 
   return [header.map(escape).join(","), ...rows].join("\n");
 }
+
+/** Replaces this browser's copy of the enquiries with the server's list, so
+ *  every admin panel reading `db.leads` shows what visitors actually sent. */
+export function replaceLeads(leads: Lead[]) {
+  return update((db) => ({ ...db, leads: leads.map(normalizeLead) }));
+}

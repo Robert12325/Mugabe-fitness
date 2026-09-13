@@ -1,7 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { parseMoney } from "@/lib/billing";
+import {
+  patchEnquiry,
+  removeAllEnquiries,
+  removeEnquiry,
+  type ServerState,
+} from "@/lib/enquiries-client";
 import {
   clearLeads,
   clientFromLead,
@@ -13,6 +19,10 @@ import { LEAD_STATUSES, type Lead, type LeadStatus } from "@/lib/types";
 import { useDB } from "@/lib/use-store";
 import { STATUS_PALETTE } from "./status-palette";
 import { Btn, Card, EmptyState, SectionTitle, inputClass } from "./ui";
+
+/** Notes save locally on every keystroke and reach the server once typing
+ *  pauses this long. */
+const NOTES_DEBOUNCE_MS = 700;
 
 function formatDate(iso: string) {
   const date = new Date(iso);
@@ -38,11 +48,40 @@ function download(filename: string, content: string, mime: string) {
   URL.revokeObjectURL(url);
 }
 
-export default function LeadsPanel() {
+export default function LeadsPanel({
+  server,
+  refreshing,
+  onRefresh,
+}: {
+  server: ServerState;
+  refreshing: boolean;
+  onRefresh: () => void;
+}) {
   const db = useDB();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<LeadStatus | "all">("all");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState("");
+
+  const online = server === "online";
+
+  const pendingNotes = useRef(
+    new Map<string, { timer: ReturnType<typeof setTimeout>; notes: string }>(),
+  );
+
+  useEffect(() => {
+    const pending = pendingNotes.current;
+
+    return () => {
+      // Leaving the tab mid-sentence shouldn't lose the last edit.
+      for (const [id, entry] of pending) {
+        clearTimeout(entry.timer);
+        void patchEnquiry(id, { notes: entry.notes });
+      }
+
+      pending.clear();
+    };
+  }, []);
 
   const programName = useMemo(() => {
     const map = new Map(db.programs.map((p) => [p.id, p.name]));
@@ -73,14 +112,71 @@ export default function LeadsPanel() {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }, [db.leads, query, status]);
 
-  function handleClearAll() {
+  /** A change applied here but refused by the server: say so, and pull the
+   *  server's copy back so the screen stops showing something untrue. */
+  function reportSaved(saved: boolean) {
+    if (saved) return;
+
+    setSyncError("A change didn't reach the server, so the latest copy was reloaded.");
+    onRefresh();
+  }
+
+  function changeStatus(lead: Lead, next: LeadStatus) {
+    updateLead(lead.id, { status: next });
+
+    if (online) void patchEnquiry(lead.id, { status: next }).then(reportSaved);
+  }
+
+  function changeNotes(lead: Lead, notes: string) {
+    updateLead(lead.id, { notes });
+
+    if (!online) return;
+
+    const pending = pendingNotes.current;
+    const existing = pending.get(lead.id);
+
+    if (existing) clearTimeout(existing.timer);
+
+    const timer = setTimeout(() => {
+      pending.delete(lead.id);
+      void patchEnquiry(lead.id, { notes }).then(reportSaved);
+    }, NOTES_DEBOUNCE_MS);
+
+    pending.set(lead.id, { timer, notes });
+  }
+
+  function removeLead(lead: Lead) {
+    deleteLead(lead.id);
+
+    if (online) void removeEnquiry(lead.id).then(reportSaved);
+  }
+
+  function convertLead(lead: Lead) {
+    const program = db.programs.find((p) => p.id === lead.programId);
+
+    clientFromLead(lead, parseMoney(program?.price ?? "0"));
+
+    if (online) {
+      void patchEnquiry(lead.id, { status: "enrolled" }).then(reportSaved);
+    }
+  }
+
+  async function handleClearAll() {
     if (db.leads.length === 0) return;
 
     const ok = window.confirm(
       `Delete all ${db.leads.length} enquiries? This cannot be undone.`,
     );
 
-    if (ok) clearLeads();
+    if (!ok) return;
+
+    // Server first: if it refuses, nothing disappears from the screen.
+    if (online && !(await removeAllEnquiries())) {
+      setSyncError("Couldn't delete enquiries on the server. Nothing was removed.");
+      return;
+    }
+
+    clearLeads();
   }
 
   return (
@@ -89,7 +185,13 @@ export default function LeadsPanel() {
         title="Enquiries"
         hint={`${db.leads.length} total · ${visible.length} shown`}
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {online && (
+              <Btn size="sm" onClick={onRefresh}>
+                {refreshing ? "Refreshing…" : "Refresh"}
+              </Btn>
+            )}
+
             <Btn
               size="sm"
               onClick={() =>
@@ -103,12 +205,31 @@ export default function LeadsPanel() {
               Export CSV
             </Btn>
 
-            <Btn size="sm" variant="danger" onClick={handleClearAll}>
+            <Btn size="sm" variant="danger" onClick={() => void handleClearAll()}>
               Clear all
             </Btn>
           </div>
         }
       />
+
+      <ConnectionNotice server={server} onRetry={onRefresh} />
+
+      {syncError && (
+        <div
+          role="alert"
+          className="mb-6 flex items-start justify-between gap-4 rounded-xl border border-red-500/30 bg-red-500/5 p-3 text-xs leading-6 text-red-300"
+        >
+          <span>{syncError}</span>
+
+          <button
+            type="button"
+            onClick={() => setSyncError("")}
+            className="shrink-0 font-black uppercase tracking-[0.1em] text-red-200 hover:text-white"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <div className="mb-6 flex flex-wrap gap-3">
         <input
@@ -143,9 +264,13 @@ export default function LeadsPanel() {
 
       {visible.length === 0 ? (
         <EmptyState>
-          {db.leads.length === 0
-            ? "No enquiries yet. Submit the form on the home page and it will appear here."
-            : "No enquiries match this filter."}
+          {server === "loading"
+            ? "Loading enquiries…"
+            : db.leads.length === 0
+              ? online
+                ? "No enquiries yet. They appear here as soon as anyone submits the form, from any device."
+                : "No enquiries in this browser."
+              : "No enquiries match this filter."}
         </EmptyState>
       ) : (
         <div className="space-y-3">
@@ -159,16 +284,62 @@ export default function LeadsPanel() {
                 setOpenId((current) => (current === lead.id ? null : lead.id))
               }
               isClient={convertedLeadIds.has(lead.id)}
-              onConvert={() => {
-                const program = db.programs.find((p) => p.id === lead.programId);
-                clientFromLead(lead, parseMoney(program?.price ?? "0"));
-              }}
+              onConvert={() => convertLead(lead)}
+              onStatus={(next) => changeStatus(lead, next)}
+              onNotes={(notes) => changeNotes(lead, notes)}
+              onDelete={() => removeLead(lead)}
             />
           ))}
         </div>
       )}
     </Card>
   );
+}
+
+function ConnectionNotice({
+  server,
+  onRetry,
+}: {
+  server: ServerState;
+  onRetry: () => void;
+}) {
+  if (server === "online") {
+    return (
+      <p className="mb-6 flex items-center gap-2 text-xs text-white/45">
+        <span aria-hidden className="h-2 w-2 rounded-full bg-[#5cc98a]" />
+        Live — showing enquiries from every device.
+      </p>
+    );
+  }
+
+  if (server === "offline") {
+    return (
+      <div className="mb-6 rounded-xl border border-amber-400/25 bg-amber-400/[0.06] p-4 text-xs leading-6 text-amber-200/85">
+        <p className="font-bold text-amber-100">
+          Not connected to the enquiry database.
+        </p>
+        <p className="mt-1">
+          Visitors&apos; requests can&apos;t reach you yet — only enquiries
+          made in this browser show here. In Vercel, connect Upstash Redis to
+          this project and set <code>ADMIN_PASSWORD</code>, then redeploy.
+        </p>
+      </div>
+    );
+  }
+
+  if (server === "error") {
+    return (
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-xs leading-6 text-red-300">
+        <span>Couldn&apos;t load enquiries from the server.</span>
+
+        <Btn size="sm" onClick={onRetry}>
+          Retry
+        </Btn>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 function LeadRow({
@@ -178,6 +349,9 @@ function LeadRow({
   onToggle,
   isClient,
   onConvert,
+  onStatus,
+  onNotes,
+  onDelete,
 }: {
   lead: Lead;
   programName: string;
@@ -185,6 +359,9 @@ function LeadRow({
   onToggle: () => void;
   isClient: boolean;
   onConvert: () => void;
+  onStatus: (status: LeadStatus) => void;
+  onNotes: (notes: string) => void;
+  onDelete: () => void;
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.015]">
@@ -253,11 +430,10 @@ function LeadRow({
 
             <textarea
               rows={2}
+              maxLength={4000}
               value={lead.notes}
               placeholder="Called on Tuesday, following up next week…"
-              onChange={(event) =>
-                updateLead(lead.id, { notes: event.target.value })
-              }
+              onChange={(event) => onNotes(event.target.value)}
               className={`${inputClass} resize-y`}
             />
           </div>
@@ -271,7 +447,7 @@ function LeadRow({
               <button
                 key={option}
                 type="button"
-                onClick={() => updateLead(lead.id, { status: option })}
+                onClick={() => onStatus(option)}
                 className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] transition ${
                   lead.status === option
                     ? STATUS_PALETTE[option].badge
@@ -305,7 +481,7 @@ function LeadRow({
                 variant="danger"
                 onClick={() => {
                   if (window.confirm(`Delete the enquiry from ${lead.name}?`)) {
-                    deleteLead(lead.id);
+                    onDelete();
                   }
                 }}
               >

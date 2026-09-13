@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import LeadsPanel from "@/components/admin/leads-panel";
 import MethodPanel from "@/components/admin/method-panel";
 import Overview from "@/components/admin/overview";
@@ -16,6 +21,14 @@ import {
 } from "@/components/admin/session";
 import { inputClass } from "@/components/admin/ui";
 import { TODAY } from "@/lib/billing";
+import {
+  loadEnquiries,
+  signIn,
+  signOut,
+  type LoadResult,
+  type ServerState,
+} from "@/lib/enquiries-client";
+import { replaceLeads } from "@/lib/store";
 import { useDB } from "@/lib/use-store";
 
 const TABS = [
@@ -32,12 +45,59 @@ type TabId = (typeof TABS)[number]["id"];
 export default function AdminPage() {
   const db = useDB();
   const [tab, setTab] = useState<TabId>("overview");
+  const [server, setServer] = useState<ServerState>("loading");
+  const [refreshing, setRefreshing] = useState(false);
 
   const unlocked = useSyncExternalStore(
     subscribeUnlock,
     getUnlocked,
     getUnlockedOnServer,
   );
+
+  // The server holds the real enquiries. Writing them into the local store
+  // means every panel that already reads `db.leads` (overview stats, the
+  // "new" badge, counts) shows them without changes of its own.
+  const apply = useCallback((result: LoadResult) => {
+    if (result.state === "online") {
+      replaceLeads(result.enquiries);
+      setServer("online");
+    } else if (result.state === "unauthorized") {
+      // Session expired or was cleared in another tab: ask again.
+      setUnlocked(false);
+    } else {
+      setServer(result.state);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!unlocked) return;
+
+    let active = true;
+
+    const load = () => {
+      loadEnquiries().then((result) => {
+        if (active) apply(result);
+      });
+    };
+
+    load();
+
+    // Coming back to the tab picks up requests sent while it was hidden.
+    window.addEventListener("focus", load);
+
+    return () => {
+      active = false;
+      window.removeEventListener("focus", load);
+    };
+  }, [unlocked, apply]);
+
+  const refresh = useCallback(() => {
+    setRefreshing(true);
+
+    loadEnquiries()
+      .then(apply)
+      .finally(() => setRefreshing(false));
+  }, [apply]);
 
   if (!unlocked) {
     return (
@@ -69,9 +129,13 @@ export default function AdminPage() {
           </div>
 
           {newCount > 0 && (
-            <span className="rounded-full border border-[#e7c65c]/35 bg-[#ad8b2b]/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#e7c65c]">
+            <button
+              type="button"
+              onClick={() => setTab("leads")}
+              className="rounded-full border border-[#e7c65c]/35 bg-[#ad8b2b]/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#e7c65c] transition hover:bg-[#ad8b2b]/25"
+            >
               {newCount} new
-            </span>
+            </button>
           )}
 
           {overdueCount > 0 && (
@@ -94,7 +158,10 @@ export default function AdminPage() {
 
             <button
               type="button"
-              onClick={() => setUnlocked(false)}
+              onClick={() => {
+                void signOut();
+                setUnlocked(false);
+              }}
               className="rounded-full border border-white/15 px-4 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white/70 transition hover:border-white/40 hover:text-white"
             >
               Lock
@@ -122,7 +189,13 @@ export default function AdminPage() {
 
       <main className="mx-auto max-w-6xl px-6 pt-8">
         {tab === "overview" && <Overview />}
-        {tab === "leads" && <LeadsPanel />}
+        {tab === "leads" && (
+          <LeadsPanel
+            server={server}
+            refreshing={refreshing}
+            onRefresh={refresh}
+          />
+        )}
         {tab === "payments" && <PaymentsPanel />}
         {tab === "programs" && <ProgramsPanel />}
         {tab === "method" && <MethodPanel />}
@@ -140,23 +213,51 @@ function Gate({
   onUnlock: () => void;
 }) {
   const [value, setValue] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (busy || !value) return;
+
+    setBusy(true);
+    setError("");
+
+    const result = await signIn(value);
+
+    setBusy(false);
+
+    if (result === "ok") {
+      onUnlock();
+      return;
+    }
+
+    if (result === "wrong") {
+      setError("Incorrect password.");
+      return;
+    }
+
+    if (result === "rate") {
+      setError("Too many attempts. Try again in a few minutes.");
+      return;
+    }
+
+    // No admin password on the server yet (local development, or the Vercel
+    // setup is unfinished). This browser's passcode opens the dashboard, but
+    // the server keeps refusing enquiry data until it is configured.
     if (value === expected) {
       onUnlock();
       return;
     }
 
-    setError(true);
+    setError("Incorrect password.");
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#050505] px-6">
       <form
-        onSubmit={submit}
+        onSubmit={(event) => void submit(event)}
         className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0b0b0b] p-8"
       >
         <div className="text-lg font-black tracking-[0.2em] text-white">
@@ -169,40 +270,40 @@ function Gate({
 
         <label
           htmlFor="passcode"
-          className="mb-2 mt-8 block text-[10px] font-black uppercase tracking-[0.2em] text-white/35"
+          className="mb-2 mt-8 block text-[10px] font-black uppercase tracking-[0.2em] text-white/45"
         >
-          Passcode
+          Password
         </label>
 
         <input
           id="passcode"
           type="password"
+          autoComplete="current-password"
           autoFocus
           value={value}
           onChange={(event) => {
             setValue(event.target.value);
-            setError(false);
+            setError("");
           }}
           className={inputClass}
         />
 
         {error && (
-          <p className="mt-3 text-xs font-semibold text-red-400">
-            Incorrect passcode.
+          <p role="alert" className="mt-3 text-xs font-semibold text-red-400">
+            {error}
           </p>
         )}
 
         <button
           type="submit"
-          className="mt-6 w-full rounded-full bg-[#d4af37] px-6 py-3 text-xs font-black uppercase tracking-[0.12em] text-black transition hover:bg-white"
+          disabled={busy}
+          className="mt-6 w-full rounded-full bg-[#d4af37] px-6 py-3 text-xs font-black uppercase tracking-[0.12em] text-black transition hover:bg-white disabled:cursor-wait disabled:opacity-60"
         >
-          Unlock
+          {busy ? "Checking…" : "Unlock"}
         </button>
 
-        <p className="mt-6 text-[11px] leading-6 text-white/25">
-          Default passcode is <span className="text-white/50">mugabe</span>.
-          This gate only hides the screen — all data lives in this browser, so
-          it is not real security.
+        <p className="mt-6 text-[11px] leading-6 text-white/35">
+          Coach access only.
         </p>
       </form>
     </div>
