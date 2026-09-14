@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import BrandMark from "@/components/brand-mark";
 import { useDB } from "@/lib/use-store";
 import Icon, { type IconName } from "./icons";
 
@@ -16,37 +17,6 @@ const surface =
 /* ------------------------------------------------------------------ */
 /* Brand                                                               */
 /* ------------------------------------------------------------------ */
-
-/** The gold "M" monogram. */
-export function BrandMark({ className = "h-12 w-12" }: { className?: string }) {
-  // useId can contain characters that break a url(#…) reference.
-  const gradient = `mark-${useId().replace(/[^A-Za-z0-9_-]/g, "")}`;
-
-  return (
-    <svg viewBox="0 0 48 48" aria-hidden focusable="false" className={className}>
-      <defs>
-        <linearGradient id={gradient} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#f8df8a" />
-          <stop offset="0.5" stopColor="#d4af37" />
-          <stop offset="1" stopColor="#8c6a17" />
-        </linearGradient>
-      </defs>
-
-      <path
-        d="M4 41V9.6a1.6 1.6 0 0 1 2.6-1.3L24 21.6 41.4 8.3A1.6 1.6 0 0 1 44 9.6V41h-9V25l-9.6 7.4a2.3 2.3 0 0 1-2.8 0L13 25v16z"
-        fill={`url(#${gradient})`}
-      />
-
-      <path
-        d="M13 25 24 33.5 35 25"
-        fill="none"
-        stroke="#000"
-        strokeOpacity="0.35"
-        strokeWidth="1.4"
-      />
-    </svg>
-  );
-}
 
 export function BrandLockup({ name, suffix }: { name: string; suffix: string }) {
   return (
