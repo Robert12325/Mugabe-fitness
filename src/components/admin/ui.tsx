@@ -76,7 +76,7 @@ export function Flourish() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none hidden shrink-0 select-none lg:mr-12 lg:block"
+      className="pointer-events-none hidden shrink-0 select-none xl:mr-12 xl:block"
     >
       <p className="-rotate-[7deg] whitespace-nowrap font-[family-name:var(--font-script)] text-[2.6rem] leading-none text-[#e9c85a]">
         {tagline}

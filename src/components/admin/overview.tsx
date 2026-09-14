@@ -57,7 +57,7 @@ export default function Overview() {
 
   return (
     <div className="space-y-8">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat icon="users" label="Total enquiries" value={stats.total} />
         <Stat icon="clock" label="Last 7 days" value={stats.week} />
         <Stat icon="check" label="Enrolled" value={stats.enrolled} />

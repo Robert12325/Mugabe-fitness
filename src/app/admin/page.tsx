@@ -56,8 +56,12 @@ const ALERT_TONE = {
   red: "bg-[#f0928c] text-black",
 };
 
+// Labels show on phones-to-tablets and on wide screens. On laptops (xl up to
+// 1600px) the six tabs need the room, so the buttons shrink to icons.
 const headerButton =
-  "inline-flex h-11 items-center gap-2.5 rounded-full border border-white/15 bg-black/40 px-4 text-sm font-semibold text-white/85 transition hover:border-white/35 hover:text-white sm:h-12 sm:px-6";
+  "inline-flex h-11 shrink-0 items-center gap-2.5 rounded-full border border-white/15 bg-black/40 px-4 text-sm font-semibold text-white/85 transition hover:border-white/35 hover:text-white sm:h-12 sm:px-6 xl:px-4 min-[1600px]:px-6";
+
+const headerButtonLabel = "hidden sm:inline xl:hidden min-[1600px]:inline";
 
 export default function AdminPage() {
   const db = useDB();
@@ -163,7 +167,7 @@ export default function AdminPage() {
       <Backdrop />
 
       <header className="relative z-20 border-b border-white/10 bg-black/75 backdrop-blur-xl">
-        <div className="flex min-h-[4.5rem] items-center gap-6 px-4 sm:min-h-[5.5rem] sm:px-8 xl:min-h-[6.5rem] xl:gap-8">
+        <div className="flex min-h-[4.5rem] items-center gap-4 px-4 sm:min-h-[5.5rem] sm:gap-6 sm:px-8 xl:min-h-[6.5rem] xl:gap-5 min-[1600px]:gap-8">
           <BrandLockup
             name={db.settings.brandName}
             suffix={db.settings.brandSuffix}
@@ -173,7 +177,7 @@ export default function AdminPage() {
 
           <nav
             aria-label="Admin sections"
-            className="hidden self-stretch xl:flex"
+            className="hidden min-w-0 self-stretch xl:flex"
           >
             {TABS.map((item) => {
               const active = tab === item.id;
@@ -185,7 +189,7 @@ export default function AdminPage() {
                   aria-current={active ? "page" : undefined}
                   aria-label={describe(item.id, item.label)}
                   onClick={() => setTab(item.id)}
-                  className={`relative flex items-center gap-3 px-6 text-[17px] font-semibold transition ${
+                  className={`relative flex shrink-0 items-center gap-2 px-3 text-[15px] font-semibold transition min-[1600px]:gap-2.5 min-[1600px]:px-5 min-[1600px]:text-base min-[1800px]:gap-3 min-[1800px]:px-6 min-[1800px]:text-[17px] ${
                     active
                       ? "bg-[linear-gradient(180deg,transparent,rgba(212,175,55,0.12))] text-[#f0c93f]"
                       : "text-white/75 hover:text-white"
@@ -218,7 +222,7 @@ export default function AdminPage() {
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
             <Link href="/" className={headerButton} aria-label="View site">
               <Icon name="eye" className="h-5 w-5" />
-              <span className="hidden sm:inline">View Site</span>
+              <span className={headerButtonLabel}>View Site</span>
             </Link>
 
             <button
@@ -231,7 +235,7 @@ export default function AdminPage() {
               className={headerButton}
             >
               <Icon name="lock" className="h-5 w-5" />
-              <span className="hidden sm:inline">Lock</span>
+              <span className={headerButtonLabel}>Lock</span>
             </button>
           </div>
         </div>
@@ -251,7 +255,15 @@ export default function AdminPage() {
                 type="button"
                 aria-current={active ? "page" : undefined}
                 aria-label={describe(item.id, item.label)}
-                onClick={() => setTab(item.id)}
+                onClick={(event) => {
+                  setTab(item.id);
+                  // The row scrolls sideways; keep the chosen tab in view.
+                  event.currentTarget.scrollIntoView({
+                    block: "nearest",
+                    inline: "nearest",
+                    behavior: "smooth",
+                  });
+                }}
                 className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.08em] transition ${
                   active
                     ? "bg-[#d4af37] text-black"
@@ -273,7 +285,7 @@ export default function AdminPage() {
       </header>
 
       <div className="relative z-10 flex">
-        <aside className="sticky top-0 hidden h-screen w-[5.5rem] shrink-0 flex-col items-center gap-3 border-r border-white/10 bg-black/40 py-6 md:flex">
+        <aside className="sticky top-0 hidden h-screen w-[5.5rem] shrink-0 flex-col items-center gap-3 overflow-y-auto border-r border-white/10 bg-black/40 py-6 md:flex">
           {TABS.map((item) => {
             const active = tab === item.id;
             const flagged = alertsFor(item.id).length > 0;
@@ -332,11 +344,14 @@ function Backdrop() {
     <div aria-hidden className="pointer-events-none fixed inset-0 z-0">
       <div className="absolute inset-0 bg-[radial-gradient(55rem_35rem_at_92%_0%,rgba(212,175,55,0.09),transparent_70%),radial-gradient(40rem_28rem_at_0%_100%,rgba(212,175,55,0.07),transparent_70%)]" />
 
-      <div className="absolute -right-20 top-44 h-5 w-80 -rotate-45 bg-gradient-to-r from-transparent via-[#b18a24] to-[#f6da80] opacity-80" />
-      <div className="absolute -right-12 top-64 h-1.5 w-60 -rotate-45 bg-gradient-to-r from-transparent to-[#d4af37]/60" />
+      {/* On phones the slashes would cut across the stacked cards. */}
+      <div className="hidden md:block">
+        <div className="absolute -right-20 top-44 h-5 w-80 -rotate-45 bg-gradient-to-r from-transparent via-[#b18a24] to-[#f6da80] opacity-80" />
+        <div className="absolute -right-12 top-64 h-1.5 w-60 -rotate-45 bg-gradient-to-r from-transparent to-[#d4af37]/60" />
 
-      <div className="absolute -left-24 bottom-28 h-6 w-80 -rotate-45 bg-gradient-to-r from-[#f6da80] via-[#b18a24] to-transparent opacity-80" />
-      <div className="absolute -left-14 bottom-10 h-1.5 w-64 -rotate-45 bg-gradient-to-r from-[#d4af37]/60 to-transparent" />
+        <div className="absolute -left-24 bottom-28 h-6 w-80 -rotate-45 bg-gradient-to-r from-[#f6da80] via-[#b18a24] to-transparent opacity-80" />
+        <div className="absolute -left-14 bottom-10 h-1.5 w-64 -rotate-45 bg-gradient-to-r from-[#d4af37]/60 to-transparent" />
+      </div>
     </div>
   );
 }

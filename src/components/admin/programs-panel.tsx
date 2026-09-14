@@ -164,7 +164,7 @@ function ProgramEditor({
 
   return (
     <div className="border-t border-white/10 px-5 py-6">
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <Field
           label="Number"
           value={draft.number}

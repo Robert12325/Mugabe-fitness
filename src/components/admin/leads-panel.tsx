@@ -480,7 +480,7 @@ function LeadRow({
 
       {open && (
         <div className="border-t border-white/10 px-5 py-5">
-          <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]">
+          <dl className="grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]">
             <Detail label="Email" value={lead.email}>
               <EmailText email={lead.email} />
             </Detail>
