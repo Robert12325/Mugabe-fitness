@@ -27,21 +27,23 @@ export default function ProgramsPanel() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   return (
-    <Card>
+    <Card decorated>
       <SectionTitle
-        title="Programs"
+        icon="calendar"
+        title="Training programs"
         hint="These cards are what visitors see in the Programs section."
         action={
           <Btn
             size="sm"
             variant="gold"
+            icon="plus"
             onClick={() => {
               const program = blankProgram(db.programs.length);
               saveProgram(program);
               setEditingId(program.id);
             }}
           >
-            + Add program
+            Add program
           </Btn>
         }
       />

@@ -18,6 +18,7 @@ import {
   monthsBetween,
   periodOf,
 } from "@/lib/billing";
+import { NO_PAYMENT, normalizeEnquiryPayment } from "@/lib/payment";
 
 export const STORAGE_KEY = "mugabe-fitness:v1";
 const DB_VERSION = 3;
@@ -166,6 +167,8 @@ function normalizeLead(raw: Partial<Lead>): Lead {
       : "new",
     createdAt: raw.createdAt ?? new Date(0).toISOString(),
     notes: raw.notes ?? "",
+    payment: normalizeEnquiryPayment(raw.payment),
+    userId: raw.userId ?? "",
   };
 }
 
@@ -356,7 +359,10 @@ export function newId() {
 }
 
 export function addLead(
-  input: Omit<Lead, "id" | "status" | "createdAt" | "notes">,
+  input: Omit<
+    Lead,
+    "id" | "status" | "createdAt" | "notes" | "payment" | "userId"
+  >,
 ) {
   const lead: Lead = {
     ...input,
@@ -364,6 +370,8 @@ export function addLead(
     status: "new",
     createdAt: new Date().toISOString(),
     notes: "",
+    payment: NO_PAYMENT,
+    userId: "",
   };
 
   update((db) => ({ ...db, leads: [lead, ...db.leads] }));
@@ -454,6 +462,8 @@ export function leadsToCSV(leads: Lead[]) {
     "Created",
     "Message",
     "Notes",
+    "Payment",
+    "Transaction ID",
   ];
 
   const escape = (value: string) =>
@@ -471,6 +481,8 @@ export function leadsToCSV(leads: Lead[]) {
       lead.createdAt,
       lead.message,
       lead.notes,
+      lead.payment.status,
+      lead.payment.txnId,
     ]
       .map(escape)
       .join(","),

@@ -1,8 +1,35 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { inputClass, labelClass } from "@/components/form-classes";
 import ContactScene from "@/components/motion/contact-scene";
+import PaymentStep from "@/components/payment-step";
+import {
+  authHeader,
+  getSession,
+  getSessionOnServer,
+  subscribeSession,
+  type Session,
+} from "@/lib/account-client";
+import { parseMoney } from "@/lib/billing";
+import {
+  clearChosenPlan,
+  getChosenPlan,
+  getChosenPlanOnServer,
+  subscribeChosenPlan,
+} from "@/lib/chosen-plan";
 import { submitEnquiry } from "@/lib/enquiries-client";
+import { paymentsEnabled } from "@/lib/payment";
+import {
+  clearBooking,
+  fetchPaymentSettings,
+  getBooking,
+  getBookingOnServer,
+  saveBooking,
+  subscribeBooking,
+  type PaymentSettingsLoad,
+} from "@/lib/payment-client";
 import { useDB } from "@/lib/use-store";
 
 const GOALS = [
@@ -25,13 +52,27 @@ const EMPTY = {
   company: "",
 };
 
-const inputClass =
-  "w-full rounded-xl border border-black/15 bg-white/70 px-4 py-3 text-sm text-black outline-none transition placeholder:text-black/35 focus:border-black focus:bg-white";
-
-const labelClass =
-  "mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-black/55";
-
 type SubmitError = { message: string; offerDirectContact: boolean };
+
+function takesPayment(load: PaymentSettingsLoad | "loading") {
+  return (
+    load !== "loading" &&
+    load.state === "online" &&
+    paymentsEnabled(load.settings)
+  );
+}
+
+/** A blank form, with the contact details already filled in when signed in. */
+function formFor(session: Session | null) {
+  return session
+    ? {
+        ...EMPTY,
+        name: session.user.name,
+        email: session.user.email,
+        phone: session.user.phone,
+      }
+    : EMPTY;
+}
 
 export default function EnquiryForm() {
   const db = useDB();
@@ -39,6 +80,55 @@ export default function EnquiryForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [phase, setPhase] = useState<"idle" | "sending" | "sent">("idle");
   const [submitError, setSubmitError] = useState<SubmitError | null>(null);
+  const [settings, setSettings] = useState<PaymentSettingsLoad | "loading">(
+    "loading",
+  );
+  const [createdId, setCreatedId] = useState("");
+
+  // A request waiting on payment (or its verification) survives reloads, so
+  // the visitor comes back to it rather than to an empty form.
+  const booking = useSyncExternalStore(
+    subscribeBooking,
+    getBooking,
+    getBookingOnServer,
+  );
+
+  const session = useSyncExternalStore(
+    subscribeSession,
+    getSession,
+    getSessionOnServer,
+  );
+
+  // Arriving signed in, or signing in on another tab, fills the contact
+  // details once — never over anything already typed. Adjusted during render
+  // rather than in an effect, so there is no flash of an empty form.
+  const accountId = session?.user.id ?? "";
+  const [prefilledFor, setPrefilledFor] = useState("");
+
+  if (accountId !== prefilledFor) {
+    setPrefilledFor(accountId);
+
+    if (session) {
+      setForm((prev) => ({
+        ...prev,
+        name: prev.name || session.user.name,
+        email: prev.email || session.user.email,
+        phone: prev.phone || session.user.phone,
+      }));
+    }
+  }
+
+  useEffect(() => {
+    let active = true;
+
+    fetchPaymentSettings().then((result) => {
+      if (active) setSettings(result);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const programs = useMemo(
     () => db.programs.filter((program) => program.active),
@@ -46,6 +136,42 @@ export default function EnquiryForm() {
   );
 
   const selected = programs.find((program) => program.id === form.programId);
+
+  // A plan chosen on its card arrives here already picked — once the visitor
+  // is signed in. Applied while rendering, then the hand-off is cleared so
+  // it only happens once per choice.
+  const chosenPlan = useSyncExternalStore(
+    subscribeChosenPlan,
+    getChosenPlan,
+    getChosenPlanOnServer,
+  );
+
+  const planToApply =
+    session &&
+    chosenPlan &&
+    programs.some((program) => program.id === chosenPlan.programId)
+      ? chosenPlan.programId
+      : "";
+
+  const [appliedPlan, setAppliedPlan] = useState("");
+
+  if (planToApply !== appliedPlan) {
+    setAppliedPlan(planToApply);
+
+    if (planToApply) {
+      const plan = programs.find((program) => program.id === planToApply);
+
+      setForm((prev) => ({
+        ...prev,
+        programId: planToApply,
+        slot: plan?.slots.includes(prev.slot) ? prev.slot : "",
+      }));
+    }
+  }
+
+  useEffect(() => {
+    if (planToApply) clearChosenPlan();
+  }, [planToApply]);
 
   // One program chosen -> just its slots. Nothing chosen yet -> every slot,
   // grouped, so a visitor can still say when they want to train.
@@ -75,7 +201,7 @@ export default function EnquiryForm() {
     }));
   }
 
-  function validate() {
+  function validate(needsProgram: boolean) {
     const next: Record<string, string> = {};
 
     if (!form.name.trim()) next.name = "Please enter your name.";
@@ -88,6 +214,11 @@ export default function EnquiryForm() {
 
     if (digits < 7 || digits > 15) {
       next.phone = "Please enter a valid phone number.";
+    }
+
+    // Payment needs an amount, and the amount comes from the program.
+    if (needsProgram && !selected) {
+      next.programId = "Choose a program to continue to payment.";
     }
 
     return next;
@@ -110,18 +241,40 @@ export default function EnquiryForm() {
     return `https://wa.me/${coachDigits}?text=${encodeURIComponent(lines.join("\n"))}`;
   }
 
+  function retrySettings() {
+    setSettings("loading");
+    fetchPaymentSettings().then(setSettings);
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (phase === "sending") return;
 
-    const found = validate();
+    const found = validate(takesPayment(settings));
     setErrors(found);
 
     if (Object.keys(found).length > 0) return;
 
     setPhase("sending");
     setSubmitError(null);
+
+    // The payment details normally arrive with the page. If they haven't,
+    // ask once more so a slow connection doesn't skip the payment step.
+    let load = settings;
+
+    if (load === "loading" || load.state === "error") {
+      load = await fetchPaymentSettings();
+      setSettings(load);
+    }
+
+    const paying = takesPayment(load);
+
+    if (paying && !selected) {
+      setErrors(validate(true));
+      setPhase("idle");
+      return;
+    }
 
     const result = await submitEnquiry({
       name: form.name.trim(),
@@ -133,10 +286,25 @@ export default function EnquiryForm() {
       goal: form.goal,
       message: form.message.trim(),
       company: form.company,
-    });
+    }, authHeader(session));
 
     if (result.ok) {
-      setForm(EMPTY);
+      setForm(formFor(session));
+
+      if (paying && selected && result.id && result.token) {
+        saveBooking({
+          id: result.id,
+          token: result.token,
+          via: "enquiry",
+          programName: selected.name,
+          amountLabel: `${selected.price}${selected.period}`,
+          amountMinor: parseMoney(selected.price),
+        });
+        setCreatedId(result.id);
+        setPhase("idle");
+        return;
+      }
+
       setPhase("sent");
       return;
     }
@@ -185,7 +353,16 @@ export default function EnquiryForm() {
           </dl>
         </div>
 
-        {phase === "sent" ? (
+        {booking ? (
+          <PaymentStep
+            key={booking.id}
+            booking={booking}
+            settings={settings}
+            fresh={booking.id === createdId}
+            onRetrySettings={retrySettings}
+            onClose={clearBooking}
+          />
+        ) : phase === "sent" ? (
           <div
             role="status"
             className="rounded-[2rem] border border-black/20 bg-black p-10 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.5)]"
@@ -227,6 +404,33 @@ export default function EnquiryForm() {
                 onChange={(event) => set("company", event.target.value)}
               />
             </div>
+
+            <p className="mb-6 rounded-xl border border-black/15 bg-white/40 px-4 py-3 text-xs leading-5 text-black/75">
+              {session ? (
+                <>
+                  Signed in as <strong>{session.user.email}</strong> — this
+                  request will show in{" "}
+                  <Link
+                    href="/account"
+                    className="font-black underline underline-offset-4"
+                  >
+                    your account
+                  </Link>
+                  .
+                </>
+              ) : (
+                <>
+                  Have an account?{" "}
+                  <Link
+                    href="/account"
+                    className="font-black underline underline-offset-4"
+                  >
+                    Log in
+                  </Link>{" "}
+                  to track your booking and payment from any device.
+                </>
+              )}
+            </p>
 
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
@@ -321,6 +525,12 @@ export default function EnquiryForm() {
                     </option>
                   ))}
                 </select>
+
+                {errors.programId && (
+                  <p className="mt-2 text-xs font-semibold text-red-900">
+                    {errors.programId}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -434,8 +644,14 @@ export default function EnquiryForm() {
               disabled={phase === "sending"}
               className="mt-7 w-full rounded-full bg-black px-7 py-4 text-sm font-black uppercase tracking-wider text-white transition hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-60 disabled:hover:bg-black disabled:hover:text-white"
             >
-              {phase === "sending" ? "Sending…" : "Start Training"}
+              {phase === "sending" ? "Sending…" : "Submit"}
             </button>
+
+            {takesPayment(settings) && (
+              <p className="mt-3 text-center text-xs text-black/60">
+                Next: pay by UPI to confirm your spot.
+              </p>
+            )}
           </form>
         )}
       </div>

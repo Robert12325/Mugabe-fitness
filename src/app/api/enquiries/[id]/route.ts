@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { denyUnlessAdmin } from "@/lib/server/admin-auth";
 import {
+  ENQUIRY_ID_PATTERN,
   deleteEnquiry,
   parsePatch,
   updateEnquiry,
@@ -9,10 +10,7 @@ import { jsonError, jsonOk, readJsonBody } from "@/lib/server/http";
 
 type Context = { params: Promise<{ id: string }> };
 
-// Enquiry ids are UUIDs; anything else never reaches storage.
-const ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
-
-/** Admin — change an enquiry's status and/or notes. */
+/** Admin — change an enquiry's status, notes, and/or payment review. */
 export async function PATCH(request: NextRequest, { params }: Context) {
   const denied = denyUnlessAdmin(request);
 
@@ -20,7 +18,7 @@ export async function PATCH(request: NextRequest, { params }: Context) {
 
   const { id } = await params;
 
-  if (!ID_PATTERN.test(id)) return jsonError(400, "Invalid enquiry id.");
+  if (!ENQUIRY_ID_PATTERN.test(id)) return jsonError(400, "Invalid enquiry id.");
 
   const body = await readJsonBody(request, 8_000);
 
@@ -33,9 +31,11 @@ export async function PATCH(request: NextRequest, { params }: Context) {
   try {
     const updated = await updateEnquiry(id, patch.value);
 
-    return updated
-      ? jsonOk({ enquiry: updated })
-      : jsonError(404, "Enquiry not found.");
+    if (updated.ok) return jsonOk({ enquiry: updated.lead });
+
+    return updated.reason === "missing"
+      ? jsonError(404, "Enquiry not found.")
+      : jsonError(409, "No payment has been submitted for this enquiry.");
   } catch (cause) {
     console.error("[enquiries] update failed", cause);
 
@@ -51,7 +51,7 @@ export async function DELETE(request: NextRequest, { params }: Context) {
 
   const { id } = await params;
 
-  if (!ID_PATTERN.test(id)) return jsonError(400, "Invalid enquiry id.");
+  if (!ENQUIRY_ID_PATTERN.test(id)) return jsonError(400, "Invalid enquiry id.");
 
   try {
     return (await deleteEnquiry(id))

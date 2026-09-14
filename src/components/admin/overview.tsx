@@ -4,8 +4,9 @@ import { useMemo } from "react";
 import { LEAD_STATUSES } from "@/lib/types";
 import { useDB } from "@/lib/use-store";
 import { SESSION_START } from "./session";
+import type { IconName } from "./icons";
 import { STATUS_PALETTE } from "./status-palette";
-import { Card, EmptyState, SectionTitle } from "./ui";
+import { Card, EmptyState, IconTile, SectionTitle } from "./ui";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -55,18 +56,20 @@ export default function Overview() {
   }, [db.leads, db.programs]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Total enquiries" value={stats.total} />
-        <Stat label="Last 7 days" value={stats.week} />
-        <Stat label="Enrolled" value={stats.enrolled} />
-        <Stat label="Conversion" value={`${stats.conversion}%`} />
+        <Stat icon="users" label="Total enquiries" value={stats.total} />
+        <Stat icon="clock" label="Last 7 days" value={stats.week} />
+        <Stat icon="check" label="Enrolled" value={stats.enrolled} />
+        <Stat icon="trend" label="Conversion" value={`${stats.conversion}%`} />
       </div>
 
-      <Card>
+      <Card decorated>
         <SectionTitle
-          title="Pipeline"
+          icon="chart"
+          title="Lead pipeline"
           hint="Where every enquiry currently sits."
+          flourish
         />
 
         {stats.total === 0 ? (
@@ -116,6 +119,7 @@ export default function Overview() {
 
       <Card>
         <SectionTitle
+          icon="calendar"
           title="Program interest"
           hint="Which program each enquiry asked about."
         />
@@ -153,16 +157,28 @@ export default function Overview() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number | string }) {
+function Stat({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: number | string;
+  icon: IconName;
+}) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#0b0b0b] p-6">
-      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
-        {label}
-      </p>
+    <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-[linear-gradient(180deg,#121212,#0a0a0a)] p-5">
+      <IconTile icon={icon} />
 
-      <p className="mt-3 text-4xl font-black tracking-tight text-white">
-        {value}
-      </p>
+      <div className="min-w-0">
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
+          {label}
+        </p>
+
+        <p className="mt-1 text-3xl font-black tracking-tight text-white">
+          {value}
+        </p>
+      </div>
     </div>
   );
 }

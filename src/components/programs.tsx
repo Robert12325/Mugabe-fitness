@@ -1,12 +1,44 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useSyncExternalStore } from "react";
 import Reveal from "@/components/motion/reveal";
 import Tilt from "@/components/motion/tilt";
+import {
+  getSession,
+  getSessionOnServer,
+  subscribeSession,
+} from "@/lib/account-client";
+import { chooseProgram } from "@/lib/chosen-plan";
 import { useDB } from "@/lib/use-store";
 
 export default function Programs() {
   const db = useDB();
+  const router = useRouter();
   const programs = db.programs.filter((program) => program.active);
+
+  const session = useSyncExternalStore(
+    subscribeSession,
+    getSession,
+    getSessionOnServer,
+  );
+
+  /**
+   * Choosing a plan needs an account. Signed in, the link scrolls to the
+   * booking form, which picks the plan up. Otherwise the visitor logs in or
+   * signs up first, and the account page sends them on to the form.
+   */
+  function choose(
+    event: React.MouseEvent<HTMLAnchorElement>,
+    programId: string,
+  ) {
+    chooseProgram(programId);
+
+    if (getSession()) return;
+
+    event.preventDefault();
+    router.push("/account");
+  }
 
   return (
     <section
@@ -131,6 +163,7 @@ export default function Programs() {
 
                 <a
                   href="#contact"
+                  onClick={(event) => choose(event, program.id)}
                   className={`mt-10 flex items-center justify-center gap-3 rounded-full px-6 py-4 text-xs font-black uppercase tracking-[0.12em] transition ${
                     program.featured
                       ? "bg-[#d4af37] text-black hover:bg-white"
@@ -142,6 +175,12 @@ export default function Programs() {
                     →
                   </span>
                 </a>
+
+                {!session && (
+                  <p className="mt-3 text-center text-xs text-white/45">
+                    You&apos;ll log in or create an account first.
+                  </p>
+                )}
               </div>
             </article>
             </Tilt>

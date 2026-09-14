@@ -49,6 +49,10 @@ export async function prepareImage(
     throw new Error("This browser could not process the image.");
   }
 
+  // JPEG has no transparency: without a backdrop, transparent pixels turn
+  // black, which makes a transparent QR code (black on nothing) unscannable.
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, width, height);
   context.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
 

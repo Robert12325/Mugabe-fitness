@@ -61,7 +61,9 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
-button {
+/* Unlayered, so this outranks Tailwind's font utilities. The admin opts out
+   so the text sizes and weights on its buttons actually apply. */
+button:not(.admin-ui *) {
   font: inherit;
 }
 

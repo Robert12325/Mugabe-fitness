@@ -7,6 +7,26 @@ export const LEAD_STATUSES: LeadStatus[] = [
   "archived",
 ];
 
+/** Where a visitor's UPI payment for their enquiry stands. "none" until they
+ *  send proof; only the coach moves it to "verified" or "rejected". */
+export type EnquiryPaymentStatus = "none" | "submitted" | "verified" | "rejected";
+
+export const ENQUIRY_PAYMENT_STATUSES: EnquiryPaymentStatus[] = [
+  "none",
+  "submitted",
+  "verified",
+  "rejected",
+];
+
+export type EnquiryPayment = {
+  status: EnquiryPaymentStatus;
+  /** UPI transaction / UTR reference the visitor typed in. */
+  txnId: string;
+  /** ISO timestamps, "" until they happen. */
+  submittedAt: string;
+  reviewedAt: string;
+};
+
 export type Lead = {
   id: string;
   name: string;
@@ -19,6 +39,9 @@ export type Lead = {
   status: LeadStatus;
   createdAt: string;
   notes: string;
+  payment: EnquiryPayment;
+  /** The visitor account it was sent from, or "" for a guest. */
+  userId: string;
 };
 
 export type Program = {

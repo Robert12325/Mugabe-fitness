@@ -8,14 +8,16 @@ export default function MethodPanel() {
   const db = useDB();
 
   return (
-    <Card>
+    <Card decorated>
       <SectionTitle
+        icon="dumbbell"
         title="The Method"
         hint="The numbered steps shown in the Method section. Edits save as you type."
         action={
           <Btn
             size="sm"
             variant="gold"
+            icon="plus"
             onClick={() =>
               saveStep({
                 id: newId(),
@@ -25,7 +27,7 @@ export default function MethodPanel() {
               })
             }
           >
-            + Add step
+            Add step
           </Btn>
         }
       />

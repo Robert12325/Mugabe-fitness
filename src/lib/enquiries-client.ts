@@ -1,9 +1,10 @@
+import type { PaymentReview } from "@/lib/payment";
 import type { Lead, LeadStatus } from "@/lib/types";
 
 /** How the admin dashboard is connected to the enquiry server. */
 export type ServerState = "loading" | "online" | "offline" | "error";
 
-async function readError(response: Response) {
+export async function readError(response: Response) {
   try {
     const body: unknown = await response.json();
 
@@ -39,22 +40,25 @@ export type EnquiryPayload = {
 };
 
 export type SubmitResult =
-  | { ok: true }
+  /** `id` and `token` are "" when the server stored nothing (a bot). */
+  | { ok: true; id: string; token: string }
   | {
       ok: false;
       kind: "invalid" | "rate" | "unavailable" | "network";
       message: string;
     };
 
+/** `headers` carries the visitor's account session when they are signed in. */
 export async function submitEnquiry(
   payload: EnquiryPayload,
+  headers: Record<string, string> = {},
 ): Promise<SubmitResult> {
   let response: Response;
 
   try {
     response = await fetch("/api/enquiries", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...headers },
       body: JSON.stringify(payload),
     });
   } catch {
@@ -66,7 +70,18 @@ export async function submitEnquiry(
     };
   }
 
-  if (response.ok) return { ok: true };
+  if (response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      id?: unknown;
+      token?: unknown;
+    } | null;
+
+    return {
+      ok: true,
+      id: typeof body?.id === "string" ? body.id : "",
+      token: typeof body?.token === "string" ? body.token : "",
+    };
+  }
 
   const message = await readError(response);
 
@@ -160,7 +175,7 @@ async function send(method: string, url: string, body?: unknown) {
 
 export function patchEnquiry(
   id: string,
-  patch: { status?: LeadStatus; notes?: string },
+  patch: { status?: LeadStatus; notes?: string; paymentStatus?: PaymentReview },
 ) {
   return send("PATCH", `/api/enquiries/${encodeURIComponent(id)}`, patch);
 }

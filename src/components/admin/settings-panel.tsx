@@ -14,7 +14,8 @@ import {
 import { formatBytes, prepareImage } from "@/lib/image";
 import { useDB } from "@/lib/use-store";
 import CoachMediaCard from "./coach-media-card";
-import { Btn, Card, Field, SectionTitle } from "./ui";
+import PaymentSettingsCard from "./payment-settings-card";
+import { Btn, Card, Field, Notice, SectionTitle } from "./ui";
 
 export default function SettingsPanel() {
   const db = useDB();
@@ -49,57 +50,71 @@ export default function SettingsPanel() {
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="space-y-8">
+      <Card decorated>
         <SectionTitle
+          icon="gear"
           title="Site details"
-          hint="Shown in the header, footer, and contact block."
+          hint="Update your brand and contact information. This will be shown in the header, footer and contact block."
+          flourish
         />
 
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-2">
           <Field
+            icon="tag"
             label="Brand name"
             value={db.settings.brandName}
             onChange={(v) => saveSettings({ brandName: v })}
           />
 
           <Field
+            icon="crown"
+            solidIcon
             label="Brand suffix"
             value={db.settings.brandSuffix}
             onChange={(v) => saveSettings({ brandSuffix: v })}
           />
 
           <Field
+            icon="bolt"
+            solidIcon
             label="Tagline"
             value={db.settings.tagline}
             onChange={(v) => saveSettings({ tagline: v })}
           />
 
           <Field
+            icon="mail"
             label="Contact email"
             value={db.settings.coachEmail}
             onChange={(v) => saveSettings({ coachEmail: v })}
           />
 
           <Field
+            icon="phone"
             label="Contact phone"
             value={db.settings.coachPhone}
             onChange={(v) => saveSettings({ coachPhone: v })}
           />
 
           <Field
+            icon="shield"
             label="Admin passcode"
             value={db.settings.adminPasscode}
             onChange={(v) => saveSettings({ adminPasscode: v })}
           />
         </div>
 
-        <p className="mt-5 rounded-xl border border-amber-400/25 bg-amber-400/[0.06] p-4 text-xs leading-6 text-amber-200/80">
-          The passcode only hides this screen from a casual visitor. Everything
-          lives in the browser, so anyone with devtools can read it — do not
-          treat it as real security.
-        </p>
+        <div className="mt-6">
+          <Notice>
+            The passcode only hides this screen from a casual visitor.
+            Everything lives in the browser, so anyone with devtools can read
+            it — do not treat it as real security.
+          </Notice>
+        </div>
       </Card>
+
+      <PaymentSettingsCard />
 
       <CoachMediaCard />
 
@@ -107,7 +122,8 @@ export default function SettingsPanel() {
 
       <Card>
         <SectionTitle
-          title="Data"
+          icon="database"
+          title="Backup & data"
           hint={`Stored in this browser under localStorage key "${STORAGE_KEY}".`}
         />
 
@@ -149,21 +165,22 @@ export default function SettingsPanel() {
           <p className="mt-4 text-xs font-semibold text-[#d4af37]">{notice}</p>
         )}
 
-        <dl className="mt-6 grid gap-3 text-xs text-white/40 sm:grid-cols-3">
-          <div>
-            <dt className="font-black uppercase tracking-[0.15em]">Enquiries</dt>
-            <dd className="mt-1 text-white/70">{db.leads.length}</dd>
-          </div>
-
-          <div>
-            <dt className="font-black uppercase tracking-[0.15em]">Programs</dt>
-            <dd className="mt-1 text-white/70">{db.programs.length}</dd>
-          </div>
-
-          <div>
-            <dt className="font-black uppercase tracking-[0.15em]">Steps</dt>
-            <dd className="mt-1 text-white/70">{db.method.length}</dd>
-          </div>
+        <dl className="mt-6 grid gap-3 sm:grid-cols-3">
+          {[
+            { label: "Enquiries", value: db.leads.length },
+            { label: "Programs", value: db.programs.length },
+            { label: "Steps", value: db.method.length },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3"
+            >
+              <dt className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
+                {item.label}
+              </dt>
+              <dd className="mt-1 text-xl font-black text-white">{item.value}</dd>
+            </div>
+          ))}
         </dl>
       </Card>
     </div>
@@ -212,6 +229,7 @@ function CoachPhotoCard() {
   return (
     <Card>
       <SectionTitle
+        icon="image"
         title="Coach photo"
         hint="Shown in the Your Coach section on the home page."
       />
@@ -244,7 +262,7 @@ function CoachPhotoCard() {
               <a
                 href={override}
                 download="coach.jpg"
-                className="inline-flex items-center justify-center rounded-full border border-white/15 px-5 py-2.5 text-xs font-black uppercase tracking-[0.1em] text-white/80 transition hover:border-white/40 hover:text-white"
+                className="inline-flex items-center justify-center rounded-full border border-white/15 bg-black/30 px-6 py-3 text-xs font-bold uppercase tracking-[0.08em] text-white/85 transition hover:border-white/35 hover:text-white"
               >
                 Download this photo
               </a>
@@ -276,7 +294,7 @@ function CoachPhotoCard() {
             }}
           />
 
-          <p className="mt-4 text-xs leading-6 text-white/35">
+          <p className="mt-4 text-xs leading-6 text-white/45">
             An uploaded photo only changes what <strong>this browser</strong>{" "}
             shows. Every other visitor sees the built-in photo,{" "}
             <code>public{DEFAULT_COACH_PHOTO}</code> in the project — replace that
@@ -285,13 +303,14 @@ function CoachPhotoCard() {
 
           <div className="mt-4">
             <Field
+              icon="image"
               label="Or use an image path / URL"
               value={override.startsWith("data:") ? "" : override}
               placeholder={DEFAULT_COACH_PHOTO}
               onChange={(v) => saveSettings({ coachPhoto: v })}
             />
 
-            <p className="mt-2 text-xs leading-6 text-white/30">
+            <p className="mt-2 text-xs leading-6 text-white/40">
               Put a file in the project&apos;s <code>public</code> folder and
               reference it here (for example <code>/coach.jpg</code>) to ship
               the photo with the site instead of storing it per browser.

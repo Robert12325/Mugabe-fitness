@@ -26,7 +26,16 @@ import type { Client, Payment, PaymentStatus } from "@/lib/types";
 import { useDB } from "@/lib/use-store";
 import BillingSyncNotice from "./billing-sync-notice";
 import EmailText from "./email-text";
-import { Btn, Card, EmptyState, Field, SectionTitle, inputClass } from "./ui";
+import type { IconName } from "./icons";
+import {
+  Btn,
+  Card,
+  EmptyState,
+  Field,
+  IconTile,
+  SectionTitle,
+  inputClass,
+} from "./ui";
 
 /* Status colours reuse the enquiry palette's reasoning: validated against the
    #0b0b0b admin surface, and every badge carries its word so status is never
@@ -132,28 +141,39 @@ export default function PaymentsPanel() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <BillingSyncNotice />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Collected all time" value={formatMoney(totals.collected)} />
-        <Stat label="Outstanding" value={formatMoney(totals.outstanding)} />
         <Stat
+          icon="rupee"
+          label="Collected all time"
+          value={formatMoney(totals.collected)}
+        />
+        <Stat
+          icon="clock"
+          label="Outstanding"
+          value={formatMoney(totals.outstanding)}
+        />
+        <Stat
+          icon="alert"
           label="Overdue"
           value={formatMoney(totals.overdueAmount)}
           sub={`${totals.overdueCount} invoice${totals.overdueCount === 1 ? "" : "s"}`}
           alert={totals.overdueCount > 0}
         />
         <Stat
+          icon="trend"
           label={`${formatPeriod(THIS_PERIOD)} collected`}
           value={`${totals.rate}%`}
           sub={`${formatMoney(totals.collectedThisMonth)} of ${formatMoney(totals.thisMonthDue)}`}
         />
       </div>
 
-      <Card>
+      <Card decorated>
         <SectionTitle
-          title="Clients"
+          icon="card"
+          title="Client billing"
           hint={`${db.clients.filter((c) => c.active).length} active · ${db.payments.length} invoices`}
           action={
             <div className="flex flex-wrap gap-2">
@@ -172,8 +192,8 @@ export default function PaymentsPanel() {
                 Generate invoices
               </Btn>
 
-              <Btn size="sm" onClick={() => setEditing(blankClient())}>
-                + Add client
+              <Btn size="sm" icon="plus" onClick={() => setEditing(blankClient())}>
+                Add client
               </Btn>
 
               <Btn
@@ -277,25 +297,35 @@ function Stat({
   value,
   sub,
   alert,
+  icon,
 }: {
   label: string;
   value: string;
   sub?: string;
   alert?: boolean;
+  icon: IconName;
 }) {
   return (
     <div
-      className={`rounded-2xl border p-6 ${
-        alert ? "border-[#f0928c]/30 bg-[#c0453d]/[0.07]" : "border-white/10 bg-[#0b0b0b]"
+      className={`flex items-start gap-4 rounded-2xl border p-5 ${
+        alert
+          ? "border-[#f0928c]/30 bg-[#c0453d]/[0.07]"
+          : "border-white/10 bg-[linear-gradient(180deg,#121212,#0a0a0a)]"
       }`}
     >
-      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
-        {label}
-      </p>
+      <IconTile icon={icon} />
 
-      <p className="mt-3 text-3xl font-black tracking-tight text-white">{value}</p>
+      <div className="min-w-0">
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
+          {label}
+        </p>
 
-      {sub && <p className="mt-2 text-xs text-white/45">{sub}</p>}
+        <p className="mt-1 break-words text-2xl font-black tracking-tight text-white">
+          {value}
+        </p>
+
+        {sub && <p className="mt-1 text-xs text-white/45">{sub}</p>}
+      </div>
     </div>
   );
 }
@@ -550,6 +580,7 @@ function ClientEditor({
   return (
     <Card>
       <SectionTitle
+        icon="users"
         title={client.name ? `Edit ${client.name}` : "New client"}
         hint="The monthly amount and billing day drive every invoice generated for them."
       />

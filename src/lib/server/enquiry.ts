@@ -1,7 +1,39 @@
-import { LEAD_STATUSES, type Lead, type LeadStatus } from "@/lib/types";
-import { rateLimit, redis } from "./redis";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import {
+  MAX_SCREENSHOT,
+  NO_PAYMENT,
+  PAYMENT_REVIEWS,
+  cleanTxnId,
+  isImageDataUrl,
+  isValidTxnId,
+  normalizeEnquiryPayment,
+  type PaymentReview,
+} from "@/lib/payment";
+import {
+  LEAD_STATUSES,
+  type EnquiryPayment,
+  type Lead,
+  type LeadStatus,
+} from "@/lib/types";
+import { pipeline, rateLimit, redis } from "./redis";
 
 const KEY = "mf:enquiries";
+/** enquiry id -> sha256 of the token that visitor holds. */
+const TOKENS = "mf:enquiry-tokens";
+/** enquiry id -> payment screenshot data URL. Kept apart from the enquiry
+ *  itself so listing every enquiry never drags every image along. */
+const SCREENSHOTS = "mf:payment-screenshots";
+
+/** Set of enquiry ids sent from one visitor account. */
+function userEnquiries(userId: string) {
+  return `mf:user-enquiries:${userId}`;
+}
+
+/** Sent in a header, not the URL, so it never lands in access logs. */
+export const ENQUIRY_TOKEN_HEADER = "x-enquiry-token";
+
+// Enquiry ids are UUIDs; anything else never reaches storage.
+export const ENQUIRY_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
 
 export const LIMITS = {
   name: 100,
@@ -21,7 +53,11 @@ export type EnquiryInput = Pick<
   "name" | "email" | "phone" | "programId" | "slot" | "goal" | "message"
 >;
 
-export type EnquiryPatch = Partial<Pick<Lead, "status" | "notes">>;
+export type EnquiryPatch = Partial<Pick<Lead, "status" | "notes">> & {
+  paymentStatus?: PaymentReview;
+};
+
+export type PaymentProof = { txnId: string; screenshot: string };
 
 const INPUT_FIELDS = [
   "name",
@@ -116,11 +152,46 @@ export function parsePatch(input: unknown): Parsed<EnquiryPatch> {
     patch.notes = notes;
   }
 
+  if ("paymentStatus" in body) {
+    if (!PAYMENT_REVIEWS.includes(body.paymentStatus as PaymentReview)) {
+      return { ok: false, error: "Unknown payment status." };
+    }
+
+    patch.paymentStatus = body.paymentStatus as PaymentReview;
+  }
+
   if (Object.keys(patch).length === 0) {
     return { ok: false, error: "Nothing to update." };
   }
 
   return { ok: true, value: patch };
+}
+
+export function parsePaymentProof(input: unknown): Parsed<PaymentProof> {
+  const body = asObject(input);
+
+  if (!body) return { ok: false, error: "Invalid request." };
+
+  const txnId =
+    typeof body.txnId === "string" ? cleanTxnId(body.txnId) : "";
+
+  if (!isValidTxnId(txnId)) {
+    return {
+      ok: false,
+      error: "Enter the transaction ID (UTR) from your payment app.",
+    };
+  }
+
+  const screenshot = typeof body.screenshot === "string" ? body.screenshot : "";
+
+  if (!isImageDataUrl(screenshot, MAX_SCREENSHOT)) {
+    return {
+      ok: false,
+      error: "Upload the payment screenshot as a JPG, PNG or WebP image.",
+    };
+  }
+
+  return { ok: true, value: { txnId, screenshot } };
 }
 
 /** Rebuilds a stored record defensively — a hand-edited or older value must
@@ -157,21 +228,61 @@ function fromStorage(raw: unknown): Lead | null {
       : "new",
     createdAt: text("createdAt") || new Date(0).toISOString(),
     notes: text("notes"),
+    payment: normalizeEnquiryPayment(body.payment),
+    userId: text("userId"),
   };
 }
 
-export async function createEnquiry(input: EnquiryInput): Promise<Lead> {
+function hashToken(token: string) {
+  return createHash("sha256").update(token).digest();
+}
+
+/**
+ * Saves the enquiry and hands back a token only its sender holds. The token
+ * is what lets that visitor — and nobody guessing ids — send payment proof
+ * and see whether it was verified. Only its hash is stored.
+ *
+ * Sent while signed in, it is also filed under that account.
+ */
+export async function createEnquiry(
+  input: EnquiryInput,
+  userId = "",
+): Promise<{ lead: Lead; token: string }> {
   const lead: Lead = {
     ...input,
     id: crypto.randomUUID(),
     status: "new",
     createdAt: new Date().toISOString(),
     notes: "",
+    payment: NO_PAYMENT,
+    userId,
   };
 
-  await redis("HSET", KEY, lead.id, JSON.stringify(lead));
+  const token = randomBytes(24).toString("base64url");
 
-  return lead;
+  const commands: (string | number)[][] = [
+    ["HSET", KEY, lead.id, JSON.stringify(lead)],
+    ["HSET", TOKENS, lead.id, hashToken(token).toString("hex")],
+  ];
+
+  if (userId) commands.push(["SADD", userEnquiries(userId), lead.id]);
+
+  await pipeline(commands);
+
+  return { lead, token };
+}
+
+export async function tokenMatches(id: string, token: string) {
+  if (!token || token.length > 100) return false;
+
+  const stored = await redis<unknown>("HGET", TOKENS, id);
+
+  if (typeof stored !== "string") return false;
+
+  const expected = Buffer.from(stored, "hex");
+  const actual = hashToken(token);
+
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
 export async function listEnquiries(): Promise<Lead[]> {
@@ -190,6 +301,29 @@ export async function listEnquiries(): Promise<Lead[]> {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+export async function getEnquiry(id: string) {
+  return fromStorage(await redis<unknown>("HGET", KEY, id));
+}
+
+/** Every enquiry sent from one account, newest first. Ids whose enquiry has
+ *  since been deleted simply drop out. */
+export async function listUserEnquiries(userId: string): Promise<Lead[]> {
+  const ids = await redis<unknown>("SMEMBERS", userEnquiries(userId));
+
+  if (!Array.isArray(ids) || ids.length === 0) return [];
+
+  const values = await redis<unknown>("HMGET", KEY, ...ids.map(String));
+
+  return (Array.isArray(values) ? values : [])
+    .map((value) => fromStorage(value))
+    .filter((lead): lead is Lead => lead !== null)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export type UpdateResult =
+  | { ok: true; lead: Lead }
+  | { ok: false; reason: "missing" | "no-proof" };
+
 /**
  * Read-modify-write. Two people saving the same enquiry in the same instant
  * could overwrite each other; for a single coach that is acceptable and keeps
@@ -198,26 +332,104 @@ export async function listEnquiries(): Promise<Lead[]> {
 export async function updateEnquiry(
   id: string,
   patch: EnquiryPatch,
-): Promise<Lead | null> {
-  const current = fromStorage(await redis<unknown>("HGET", KEY, id));
+): Promise<UpdateResult> {
+  const current = await getEnquiry(id);
 
-  if (!current) return null;
+  if (!current) return { ok: false, reason: "missing" };
 
-  const next: Lead = { ...current, ...patch };
+  const { paymentStatus, ...fields } = patch;
+  let payment = current.payment;
+
+  if (paymentStatus) {
+    // Nothing to verify until the visitor has sent proof.
+    if (current.payment.status === "none") {
+      return { ok: false, reason: "no-proof" };
+    }
+
+    payment = {
+      ...current.payment,
+      status: paymentStatus,
+      reviewedAt:
+        paymentStatus === "submitted" ? "" : new Date().toISOString(),
+    };
+  }
+
+  const next: Lead = { ...current, ...fields, payment };
 
   await redis("HSET", KEY, id, JSON.stringify(next));
 
-  return next;
+  return { ok: true, lead: next };
+}
+
+export type ProofResult =
+  | { ok: true; payment: EnquiryPayment }
+  | { ok: false; reason: "missing" | "locked" };
+
+/** Records a visitor's payment proof. Allowed once, and again only after the
+ *  coach rejected the last attempt. */
+export async function submitPaymentProof(
+  id: string,
+  proof: PaymentProof,
+): Promise<ProofResult> {
+  const current = await getEnquiry(id);
+
+  if (!current) return { ok: false, reason: "missing" };
+
+  if (
+    current.payment.status === "submitted" ||
+    current.payment.status === "verified"
+  ) {
+    return { ok: false, reason: "locked" };
+  }
+
+  const payment: EnquiryPayment = {
+    status: "submitted",
+    txnId: proof.txnId,
+    submittedAt: new Date().toISOString(),
+    reviewedAt: "",
+  };
+
+  await pipeline([
+    ["HSET", SCREENSHOTS, id, proof.screenshot],
+    ["HSET", KEY, id, JSON.stringify({ ...current, payment })],
+  ]);
+
+  return { ok: true, payment };
+}
+
+export async function getPaymentScreenshot(id: string) {
+  const value = await redis<unknown>("HGET", SCREENSHOTS, id);
+
+  return typeof value === "string" ? value : null;
 }
 
 export async function deleteEnquiry(id: string) {
-  return Number(await redis("HDEL", KEY, id)) > 0;
+  const current = await getEnquiry(id);
+
+  const commands: (string | number)[][] = [
+    ["HDEL", KEY, id],
+    ["HDEL", TOKENS, id],
+    ["HDEL", SCREENSHOTS, id],
+  ];
+
+  if (current?.userId) {
+    commands.push(["SREM", userEnquiries(current.userId), id]);
+  }
+
+  const [removed] = await pipeline(commands);
+
+  return Number(removed) > 0;
 }
 
+/** Account booking lists keep the stale ids; `listUserEnquiries` skips them. */
 export async function clearEnquiries() {
-  await redis("DEL", KEY);
+  await redis("DEL", KEY, TOKENS, SCREENSHOTS);
 }
 
 export function allowSubmission(ip: string) {
   return rateLimit(`mf:rl:enquiry:${ip}`, 5, 10 * 60);
+}
+
+export function allowPaymentSubmission(ip: string) {
+  return rateLimit(`mf:rl:payment:${ip}`, 10, 10 * 60);
 }

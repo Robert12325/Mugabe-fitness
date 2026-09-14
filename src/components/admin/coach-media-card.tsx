@@ -83,6 +83,7 @@ export default function CoachMediaCard() {
   return (
     <Card>
       <SectionTitle
+        icon="video"
         title="Coach section media"
         hint="Choose whether visitors see a photo or a video beside “Built by someone who lives the work.”"
       />

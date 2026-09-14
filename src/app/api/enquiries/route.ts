@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { userFromRequest } from "@/lib/server/account";
 import { denyUnlessAdmin } from "@/lib/server/admin-auth";
 import {
   allowSubmission,
@@ -43,9 +44,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await createEnquiry(parsed.value);
+    // Signed in: the request is filed under their account as well. An
+    // expired session just sends it as a guest.
+    const user = await userFromRequest(request);
+    const { lead, token } = await createEnquiry(parsed.value, user?.id ?? "");
 
-    return jsonOk({ ok: true }, 201);
+    // The token is the visitor's only key to paying for, and following, this
+    // request — it is never shown to anyone else.
+    return jsonOk({ ok: true, id: lead.id, token }, 201);
   } catch (cause) {
     console.error("[enquiries] create failed", cause);
 

@@ -1,7 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useState, useSyncExternalStore } from "react";
 import Marquee from "@/components/motion/marquee";
+import {
+  getSession,
+  getSessionOnServer,
+  subscribeSession,
+} from "@/lib/account-client";
 
 const TICKER = [
   "Strength",
@@ -21,6 +27,16 @@ const links = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+
+  const session = useSyncExternalStore(
+    subscribeSession,
+    getSession,
+    getSessionOnServer,
+  );
+
+  const accountLabel = session
+    ? session.user.name.split(" ")[0] || "Account"
+    : "Log in";
 
   const closeMenu = () => setOpen(false);
 
@@ -49,6 +65,13 @@ export default function Navbar() {
             </a>
           ))}
 
+          <Link
+            href="/account"
+            className="max-w-[9rem] truncate rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white/80 transition hover:border-[#d4af37] hover:text-white"
+          >
+            {accountLabel}
+          </Link>
+
           <a
             href="#programs"
             className="rounded-full bg-[#d4af37] px-5 py-2.5 text-sm font-bold text-black transition hover:bg-white"
@@ -74,7 +97,7 @@ export default function Navbar() {
       {/* Mobile navigation */}
       <div
         className={`overflow-hidden border-t border-white/10 bg-black transition-all duration-300 md:hidden ${
-          open ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          open ? "max-h-[28rem] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
         <div className="px-5 py-5">
@@ -89,6 +112,14 @@ export default function Navbar() {
                 {link.label}
               </a>
             ))}
+
+            <Link
+              href="/account"
+              onClick={closeMenu}
+              className="border-b border-white/10 py-4 text-sm font-semibold text-white/70 transition hover:text-white"
+            >
+              {session ? "My account" : "Log in"}
+            </Link>
 
             <a
               href="#programs"

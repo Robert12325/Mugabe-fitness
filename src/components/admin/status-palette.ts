@@ -1,4 +1,4 @@
-import type { LeadStatus } from "@/lib/types";
+import type { EnquiryPaymentStatus, LeadStatus } from "@/lib/types";
 
 /**
  * Status palette for the admin surface (#0b0b0b).
@@ -36,5 +36,29 @@ export const STATUS_PALETTE: Record<
     fill: "#7d7d7d",
     text: "#a3a3a3",
     badge: "border-white/15 bg-white/5 text-[#a3a3a3]",
+  },
+};
+
+/** Payment badges reuse the tints above: amber for waiting on the coach,
+ *  green for verified, and the overdue red for rejected. */
+export const PAYMENT_PALETTE: Record<
+  EnquiryPaymentStatus,
+  { label: string; badge: string }
+> = {
+  none: {
+    label: "Unpaid",
+    badge: "border-white/15 bg-white/5 text-[#a3a3a3]",
+  },
+  submitted: {
+    label: "Payment to verify",
+    badge: "border-amber-300/40 bg-amber-400/10 text-amber-200",
+  },
+  verified: {
+    label: "Paid",
+    badge: "border-[#5cc98a]/35 bg-[#2ea55c]/15 text-[#5cc98a]",
+  },
+  rejected: {
+    label: "Payment rejected",
+    badge: "border-[#f0928c]/40 bg-[#c0453d]/15 text-[#f0928c]",
   },
 };
