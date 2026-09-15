@@ -7,7 +7,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import Icon, { type IconName } from "@/components/admin/icons";
+import Icon, { type IconName } from "@/components/icons";
 import LeadsPanel from "@/components/admin/leads-panel";
 import MethodPanel from "@/components/admin/method-panel";
 import Overview from "@/components/admin/overview";

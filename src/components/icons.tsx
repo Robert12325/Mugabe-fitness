@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 
 /**
- * The admin's icon set: 24px grid, 1.8px strokes, drawn in currentColor so an
+ * The site's icon set: 24px grid, 1.8px strokes, drawn in currentColor so an
  * icon always takes the colour of the text around it. Inline rather than a
- * dependency — the dashboard only needs a couple of dozen.
+ * dependency — the site only needs a few dozen.
  *
  * A few have a `solid` form, used where the brand artwork fills them in.
  */
@@ -19,6 +19,12 @@ const ICONS = {
     <>
       <path d="M3 10.5 12 3l9 7.5" />
       <path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5" />
+    </>
+  ),
+  user: () => (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
     </>
   ),
   users: () => (
@@ -197,6 +203,43 @@ const ICONS = {
       <path d="M12 17h.01" />
     </>
   ),
+  target: () => (
+    <>
+      <circle cx="11" cy="13" r="8" />
+      <circle cx="11" cy="13" r="4" />
+      <path d="m11 13 9-9" />
+      <path d="M16.5 3.5H20v3.5" />
+    </>
+  ),
+  chat: () => (
+    <path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.4A8 8 0 1 1 21 12z" />
+  ),
+  send: () => (
+    <>
+      <path d="m22 2-7 20-4-9-9-4z" />
+      <path d="M22 2 11 13" />
+    </>
+  ),
+  brain: () => (
+    <>
+      <path d="M12 5a3 3 0 0 0-5.8-1A3.5 3.5 0 0 0 4 9.5a3.5 3.5 0 0 0 .6 5.9A3.5 3.5 0 0 0 9 20a3 3 0 0 0 3-2z" />
+      <path d="M12 5a3 3 0 0 1 5.8-1A3.5 3.5 0 0 1 20 9.5a3.5 3.5 0 0 1-.6 5.9A3.5 3.5 0 0 1 15 20a3 3 0 0 1-3-2" />
+      <path d="M12 5v13" />
+    </>
+  ),
+  mountain: () => (
+    <>
+      <path d="m2 20 7.5-12 4.5 7 2.5-3.5L22 20z" />
+      <path d="m7.4 11.4 2.1 1.6 2-1.6" />
+    </>
+  ),
+  arrowRight: () => (
+    <>
+      <path d="M5 12h14" />
+      <path d="m13 6 6 6-6 6" />
+    </>
+  ),
+  chevronDown: () => <path d="m6 9 6 6 6-6" />,
 } satisfies Record<string, (solid: boolean) => ReactNode>;
 
 export type IconName = keyof typeof ICONS;

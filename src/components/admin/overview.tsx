@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { LEAD_STATUSES } from "@/lib/types";
 import { useDB } from "@/lib/use-store";
 import { SESSION_START } from "./session";
-import type { IconName } from "./icons";
+import type { IconName } from "@/components/icons";
 import { STATUS_PALETTE } from "./status-palette";
 import { Card, EmptyState, IconTile, SectionTitle } from "./ui";
 

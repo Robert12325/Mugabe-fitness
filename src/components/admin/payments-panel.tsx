@@ -26,7 +26,7 @@ import type { Client, Payment, PaymentStatus } from "@/lib/types";
 import { useDB } from "@/lib/use-store";
 import BillingSyncNotice from "./billing-sync-notice";
 import EmailText from "./email-text";
-import type { IconName } from "./icons";
+import type { IconName } from "@/components/icons";
 import {
   Btn,
   Card,

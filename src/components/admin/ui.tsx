@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import BrandMark from "@/components/brand-mark";
 import { useDB } from "@/lib/use-store";
-import Icon, { type IconName } from "./icons";
+import Icon, { type IconName } from "@/components/icons";
 
 export const GOLD = "#d4af37";
 
