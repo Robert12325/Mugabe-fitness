@@ -8,6 +8,8 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import FeatureBadges from "@/components/feature-badges";
+import { GoldCardGlow, goldCardClass } from "@/components/gold-card";
 import Icon, { type IconName } from "@/components/icons";
 import ContactScene from "@/components/motion/contact-scene";
 import PaymentStep from "@/components/payment-step";
@@ -58,22 +60,11 @@ const EMPTY = {
   company: "",
 };
 
-const FEATURES = [
-  { icon: "dumbbell", top: "Better", bottom: "Fitness" },
-  { icon: "brain", top: "Stronger", bottom: "Mindset" },
-  { icon: "mountain", top: "Bigger", bottom: "Goals" },
-  { icon: "crown", top: "Real", bottom: "Results" },
-] as const satisfies readonly { icon: IconName; top: string; bottom: string }[];
-
 /** Room on the left for the field's icon. */
 const fieldClass =
   "w-full rounded-xl border border-white/10 bg-black/40 py-3.5 pl-12 pr-4 text-sm text-white outline-none transition [color-scheme:dark] placeholder:text-white/35 hover:border-white/20 focus:border-[#e0b54a]/70 focus:bg-black/60 focus:shadow-[0_0_0_3px_rgba(224,181,74,0.12)]";
 
 const selectClass = `${fieldClass} cursor-pointer appearance-none pr-10`;
-
-/** The dark glass card the form and its confirmation sit on. */
-const cardClass =
-  "relative overflow-hidden rounded-[1.75rem] border border-[#e0b54a]/30 bg-[linear-gradient(180deg,rgba(22,20,16,0.92),rgba(8,8,8,0.96))] shadow-[0_30px_80px_-30px_rgba(0,0,0,0.9),0_0_70px_-25px_rgba(224,181,74,0.35)] backdrop-blur-xl";
 
 type SubmitError = { message: string; offerDirectContact: boolean };
 
@@ -413,24 +404,7 @@ export default function EnquiryForm() {
             />
           </ul>
 
-          <ul className="mt-10 grid max-w-xl grid-cols-2 gap-y-7 sm:grid-cols-4 sm:gap-y-0">
-            {FEATURES.map((feature, index) => (
-              <li
-                key={feature.top}
-                className={`flex flex-col items-center gap-3 px-2 text-center ${
-                  index > 0 ? "sm:border-l sm:border-white/10" : ""
-                }`}
-              >
-                <Icon name={feature.icon} className="h-7 w-7 text-[#e0b54a]" />
-
-                <span className="text-[10px] font-bold uppercase leading-[1.5] tracking-[0.16em] text-white/80">
-                  {feature.top}
-                  <br />
-                  {feature.bottom}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <FeatureBadges className="mt-10 max-w-xl" />
         </div>
 
         <div className="relative">
@@ -448,8 +422,8 @@ export default function EnquiryForm() {
               />
             </div>
           ) : phase === "sent" ? (
-            <div role="status" className={`${cardClass} p-10`}>
-              <CardGlow />
+            <div role="status" className={`${goldCardClass} p-10`}>
+              <GoldCardGlow />
 
               <div className="relative">
                 <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(180deg,#f6d27a,#c98f28)] text-black">
@@ -474,9 +448,9 @@ export default function EnquiryForm() {
             <form
               onSubmit={handleSubmit}
               noValidate
-              className={`${cardClass} p-5 sm:p-8`}
+              className={`${goldCardClass} p-5 sm:p-8`}
             >
-              <CardGlow />
+              <GoldCardGlow />
 
               <div className="relative">
                 {/* Honeypot: off-screen and hidden from assistive tech. Real
@@ -829,29 +803,5 @@ function ContactRow({
         )}
       </span>
     </li>
-  );
-}
-
-/** Gold light catching two corners of the card. */
-function CardGlow() {
-  return (
-    <>
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[#e0b54a]/25 blur-3xl"
-      />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[#e0b54a]/20 blur-3xl"
-      />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute right-0 top-0 h-28 w-28 rounded-tr-[1.75rem] border-r-2 border-t-2 border-[#f3c969] [mask-image:linear-gradient(225deg,#000_10%,transparent_65%)]"
-      />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute bottom-0 left-0 h-28 w-28 rounded-bl-[1.75rem] border-b-2 border-l-2 border-[#f3c969] [mask-image:linear-gradient(45deg,#000_10%,transparent_65%)]"
-      />
-    </>
   );
 }

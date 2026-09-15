@@ -1,11 +1,4 @@
-"use client";
-
-import Image from "next/image";
-import { useState } from "react";
-
-/** Drop your own photo in /public under this name to use it here. */
-const ATHLETE_PHOTO = "/athlete.jpg";
-const FALLBACK_PHOTO = "/coach.jpg";
+import AthletePhoto from "@/components/athlete-photo";
 
 /**
  * The backdrop of the dark contact section: the athlete down the left edge,
@@ -15,9 +8,6 @@ const FALLBACK_PHOTO = "/coach.jpg";
  * intercepts a tap meant for the form.
  */
 export default function ContactScene() {
-  // Until /public/athlete.jpg exists, the coach photo stands in.
-  const [photo, setPhoto] = useState(ATHLETE_PHOTO);
-
   return (
     <div
       aria-hidden
@@ -29,13 +19,9 @@ export default function ContactScene() {
       {/* The athlete: a faded band behind the heading on phones and
           tablets, a full-height strip down the left edge from xl. */}
       <div className="absolute left-0 top-0 h-[30rem] w-[85%] opacity-40 sm:h-[36rem] sm:w-[60%] xl:bottom-0 xl:h-auto xl:w-[26vw] xl:max-w-[30rem] xl:opacity-100">
-        <Image
-          src={photo}
-          alt=""
-          fill
+        <AthletePhoto
           sizes="(min-width: 1280px) 26vw, 85vw"
-          onError={() => setPhoto(FALLBACK_PHOTO)}
-          className="object-cover object-[50%_15%] brightness-[0.72] contrast-125 grayscale"
+          className="object-[50%_15%] brightness-[0.72] contrast-125 grayscale"
         />
 
         {/* A warm rim light, then fades into the black on every side. */}
