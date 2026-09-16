@@ -42,6 +42,14 @@ const ICONS = {
       <path d="M6.5 15h4" />
     </>
   ),
+  clipboard: () => (
+    <>
+      <path d="M9 4.5H6.5A1.5 1.5 0 0 0 5 6v14a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 20V6a1.5 1.5 0 0 0-1.5-1.5H15" />
+      <rect x="9" y="2.5" width="6" height="4" rx="1.5" />
+      <path d="M8.5 12h7" />
+      <path d="M8.5 16h4.5" />
+    </>
+  ),
   calendar: () => (
     <>
       <rect x="3" y="4.5" width="18" height="16.5" rx="2.5" />
