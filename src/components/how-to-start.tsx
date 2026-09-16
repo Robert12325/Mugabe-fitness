@@ -136,6 +136,21 @@ export default function HowToStart() {
           </div>
         </Reveal>
 
+        {/* Below lg there is no room beside the headline, so the figure
+            takes a band of its own rather than disappearing. */}
+        <div className="relative mt-10 h-52 overflow-hidden rounded-[1.5rem] border border-[#e0b54a]/25 sm:h-64 lg:hidden">
+          <SectionPhoto
+            sources={[photo, DEFAULT_COACH_PHOTO]}
+            sizes="100vw"
+            className="object-cover object-[50%_20%] opacity-85 contrast-[1.15] grayscale"
+          />
+
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.45),transparent_38%,rgba(0,0,0,0.75))]"
+          />
+        </div>
+
         <div className="mt-14 grid gap-6 md:grid-cols-3 lg:mt-20">
           {STEPS.map((step, index) => (
             <Reveal key={step.number} delay={index * 90} className="h-full">

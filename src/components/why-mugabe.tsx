@@ -50,10 +50,7 @@ const ATHLETE_PHOTO = "/why-athlete.png";
 /** The framed portrait under the headline. */
 const FIGURE_PHOTO = "/why-figure.jpg";
 
-/** Each row's photo fades out towards the copy rather than ending on a
- *  hard vertical line. */
-const ROW_PHOTO_FADE =
-  "linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.3) 34%, #000 74%)";
+
 
 /** Fades the standing figure into the black around it. */
 const ATHLETE_MASK =
@@ -151,14 +148,16 @@ export default function WhyMugabe() {
               <Reveal key={reason.number} delay={index * 110}>
                 <a
                   href="#contact"
-                  className={`group flex items-center gap-5 p-4 transition duration-500 hover:border-[#f3c969]/60 sm:gap-6 sm:p-5 sm:pr-[44%] ${goldCardClass}`}
+                  className={`group flex flex-col gap-4 p-4 transition duration-500 hover:border-[#f3c969]/60 sm:flex-row sm:items-center sm:gap-6 sm:p-5 sm:pr-[44%] ${goldCardClass}`}
                 >
                   <GoldCardGlow />
 
-                  {/* The athlete, cut in on a diagonal down the row. */}
+                  {/* A band across the top of the card on phones, where there
+                      is no width to put it beside the copy; a diagonal cut
+                      down the right from sm up. */}
                   <div
                     aria-hidden
-                    className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] [clip-path:polygon(20%_0,100%_0,100%_100%,0_100%)] sm:block"
+                    className="pointer-events-none relative -mx-4 -mt-4 h-40 overflow-hidden rounded-t-[1.75rem] border-b border-[#e0b54a]/30 sm:absolute sm:inset-y-0 sm:right-0 sm:m-0 sm:h-auto sm:w-[46%] sm:rounded-none sm:border-0 sm:[clip-path:polygon(20%_0,100%_0,100%_100%,0_100%)]"
                   >
                     <SectionPhoto
                       sources={[
@@ -166,10 +165,17 @@ export default function WhyMugabe() {
                         coachPhotoAt(settings, index + 1),
                         DEFAULT_COACH_PHOTO,
                       ]}
-                      sizes="(min-width: 1024px) 28vw, 45vw"
-                      mask={ROW_PHOTO_FADE}
-                      className="scale-[1.25] object-cover object-[50%_16%] opacity-90 contrast-[1.2] grayscale transition duration-700 group-hover:opacity-100"
+                      sizes="(min-width: 1024px) 28vw, (min-width: 640px) 45vw, 100vw"
+                      // A wide short band needs the frame further down the
+                      // photo than the tall strip does, or it lands on the
+                      // ceiling above him.
+                      className="object-cover object-[50%_34%] opacity-90 contrast-[1.2] grayscale transition duration-700 group-hover:opacity-100 sm:scale-[1.15] sm:object-[50%_30%]"
                     />
+
+                    {/* Sinks the band into the card on phones, and fades the
+                        strip towards the copy from sm — a mask can't, since
+                        an inline style has no breakpoints. */}
+                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,10,8,0.5),transparent_45%,rgba(11,10,8,0.85))] sm:bg-[linear-gradient(90deg,#0b0a08_2%,rgba(11,10,8,0.6)_34%,transparent_78%)]" />
                   </div>
 
                   {/* The gold light running along that diagonal. */}
@@ -178,25 +184,32 @@ export default function WhyMugabe() {
                     className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] bg-[linear-gradient(180deg,#f3c969,rgba(243,201,105,0.12))] [clip-path:polygon(20%_0,21.1%_0,1.1%_100%,0_100%)] sm:block"
                   />
 
-                  <Hexagon className="flex h-[3.6rem] w-[3.1rem] shrink-0">
-                    <span className="text-lg font-black tracking-tight text-[#f5c518]">
-                      {reason.number}
-                    </span>
-                  </Hexagon>
+                  {/* `sm:contents` drops this wrapper at sm+, so the plates and
+                      copy go back to being items of the row itself. */}
+                  <div className="flex items-center gap-4 sm:contents">
+                    <Hexagon className="flex h-[3.6rem] w-[3.1rem] shrink-0">
+                      <span className="text-lg font-black tracking-tight text-[#f5c518]">
+                        {reason.number}
+                      </span>
+                    </Hexagon>
 
-                  <Hexagon className="hidden h-[3.6rem] w-[3.1rem] shrink-0 sm:flex">
-                    <Icon name={reason.icon} className="h-5 w-5 text-[#f5c518]" />
-                  </Hexagon>
+                    <Hexagon className="flex h-[3.6rem] w-[3.1rem] shrink-0">
+                      <Icon
+                        name={reason.icon}
+                        className="h-5 w-5 text-[#f5c518]"
+                      />
+                    </Hexagon>
 
-                  <div className="relative min-w-0 flex-1">
-                    <h3 className="text-lg font-black uppercase leading-[1.1] tracking-tight sm:text-xl">
-                      <span className="text-white">{reason.title}</span>{" "}
-                      <span className="text-[#f5c518]">{reason.accent}</span>
-                    </h3>
+                    <div className="relative min-w-0 flex-1">
+                      <h3 className="text-lg font-black uppercase leading-[1.1] tracking-tight sm:text-xl">
+                        <span className="text-white">{reason.title}</span>{" "}
+                        <span className="text-[#f5c518]">{reason.accent}</span>
+                      </h3>
 
-                    <p className="mt-2 text-sm leading-6 text-white/60">
-                      {reason.text}
-                    </p>
+                      <p className="mt-2 text-sm leading-6 text-white/60">
+                        {reason.text}
+                      </p>
+                    </div>
                   </div>
 
                   <span
