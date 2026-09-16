@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
 import { GoldCardGlow, goldCardClass } from "@/components/gold-card";
+import Hexagon from "@/components/hexagon";
 import Icon, { type IconName } from "@/components/icons";
 import Reveal from "@/components/motion/reveal";
+import SectionPhoto from "@/components/section-photo";
 import { coachPhotoSrc } from "@/lib/store";
 import { useDB } from "@/lib/use-store";
 
@@ -79,7 +80,7 @@ export default function WhyMugabe() {
         aria-hidden
         className="pointer-events-none absolute inset-y-0 left-0 hidden w-[17rem] select-none xl:block 2xl:w-[21rem]"
       >
-        <PhotoWithFallback
+        <SectionPhoto
           src={ATHLETE_PHOTO}
           fallback={coach}
           sizes="21rem"
@@ -157,7 +158,7 @@ export default function WhyMugabe() {
                     aria-hidden
                     className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] [clip-path:polygon(20%_0,100%_0,100%_100%,0_100%)] sm:block"
                   >
-                    <PhotoWithFallback
+                    <SectionPhoto
                       src={reason.photo}
                       fallback={coach}
                       sizes="(min-width: 1024px) 28vw, 45vw"
@@ -206,38 +207,6 @@ export default function WhyMugabe() {
         </div>
       </div>
     </section>
-  );
-}
-
-/**
- * The hexagon plates the numbers and icons sit on. Drawn as SVG rather than
- * clipped, because a clip-path would cut a CSS border off at the edges.
- */
-function Hexagon({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className: string;
-}) {
-  return (
-    <span className={`relative items-center justify-center ${className}`}>
-      <svg
-        viewBox="0 0 100 115"
-        aria-hidden
-        className="absolute inset-0 h-full w-full"
-      >
-        <polygon
-          points="50,3 96,30 96,85 50,112 4,85 4,30"
-          fill="rgba(224,181,74,0.07)"
-          stroke="#e0b54a"
-          strokeOpacity="0.55"
-          strokeWidth="3"
-        />
-      </svg>
-
-      <span className="relative">{children}</span>
-    </span>
   );
 }
 
@@ -300,45 +269,5 @@ function FramedFigure() {
         className="pointer-events-none absolute bottom-0 left-0 h-20 w-20 rounded-bl-[1.5rem] border-b-2 border-l-2 border-[#f3c969] [mask-image:linear-gradient(45deg,#000_10%,transparent_65%)]"
       />
     </div>
-  );
-}
-
-/**
- * A photo that falls back to the coach's own picture until its file exists,
- * so the section is never left with an empty frame.
- *
- * Decorative, so it has no alt text; place it inside a positioned box.
- */
-function PhotoWithFallback({
-  src,
-  fallback,
-  sizes,
-  mask,
-  className,
-}: {
-  src: string;
-  fallback: string;
-  sizes: string;
-  mask: string;
-  className: string;
-}) {
-  // Remembering which src failed (rather than a boolean) resets on its own
-  // when the photo changes.
-  const [failedSrc, setFailedSrc] = useState("");
-  const photo = failedSrc === src ? fallback : src;
-
-  return (
-    <Image
-      src={photo}
-      alt=""
-      fill
-      sizes={sizes}
-      // A file in /public goes through the optimizer; an uploaded data URL
-      // or remote link can't without extra config.
-      unoptimized={!photo.startsWith("/")}
-      onError={() => setFailedSrc(src)}
-      style={{ maskImage: mask, WebkitMaskImage: mask }}
-      className={className}
-    />
   );
 }
