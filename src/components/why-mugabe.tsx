@@ -5,7 +5,6 @@ import { useState } from "react";
 import { GoldCardGlow, goldCardClass } from "@/components/gold-card";
 import Icon, { type IconName } from "@/components/icons";
 import Reveal from "@/components/motion/reveal";
-import WireCube from "@/components/motion/wire-cube";
 import { coachPhotoSrc } from "@/lib/store";
 import { useDB } from "@/lib/use-store";
 
@@ -47,8 +46,8 @@ const REASONS = [
 /** The figure standing beside the headline. */
 const ATHLETE_PHOTO = "/why-athlete.png";
 
-/** The branded cube. Until this exists, the wireframe cube stands in. */
-const CUBE_IMAGE = "/m-cube.png";
+/** The framed portrait under the headline. */
+const FIGURE_PHOTO = "/why-figure.jpg";
 
 /** Each row's photo fades out towards the copy rather than ending on a
  *  hard vertical line. */
@@ -138,12 +137,9 @@ export default function WhyMugabe() {
               className="mt-4 block h-0.5 w-16 bg-[linear-gradient(90deg,#f5c518,rgba(245,197,24,0.05))]"
             />
 
-            {/* Fills the column the heading leaves empty, and gives the
-                section its own 3D object. */}
-            <div className="mt-12 flex h-[11rem] items-center justify-center sm:h-[13.5rem]">
-              <div className="scale-[0.72] sm:scale-100">
-                <BrandCube />
-              </div>
+            {/* Fills the column the heading leaves empty. */}
+            <div className="mt-12 flex justify-center lg:justify-start">
+              <FramedFigure />
             </div>
           </Reveal>
 
@@ -264,24 +260,44 @@ function ChevronPair() {
   );
 }
 
-/**
- * The branded cube, with the animated wireframe cube standing in until
- * /public/m-cube.png exists.
- */
-function BrandCube() {
-  const [failed, setFailed] = useState(false);
-
-  if (failed) return <WireCube size={200} className="float-slow" />;
-
+/** The portrait under the headline, in a gold-lit frame. */
+function FramedFigure() {
   return (
-    <div className="float-slow relative h-[13rem] w-[13rem]">
-      <Image
-        src={CUBE_IMAGE}
-        alt=""
-        fill
-        sizes="13rem"
-        onError={() => setFailed(true)}
-        className="object-contain"
+    <div className="float-slow relative h-[14rem] w-[14rem] shrink-0 sm:h-[17rem] sm:w-[17rem]">
+      {/* Gold light spilling off two corners of the frame. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[#e0b54a]/25 blur-3xl"
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -bottom-8 -left-8 h-28 w-28 rounded-full bg-[#e0b54a]/20 blur-3xl"
+      />
+
+      <div className="relative h-full w-full overflow-hidden rounded-[1.5rem] border border-[#e0b54a]/40 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.9),0_0_70px_-25px_rgba(224,181,74,0.4)]">
+        <Image
+          src={FIGURE_PHOTO}
+          alt=""
+          fill
+          sizes="(min-width: 640px) 17rem, 14rem"
+          className="object-cover object-[50%_35%] brightness-[0.72] contrast-[1.3] grayscale"
+        />
+
+        {/* Sinks the bright rooftop background into the section around it. */}
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-[radial-gradient(ellipse_64%_68%_at_50%_44%,transparent_16%,rgba(7,7,7,0.55)_62%,rgba(7,7,7,0.96)_100%)]"
+        />
+      </div>
+
+      {/* Gold catching the frame's corners. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute right-0 top-0 h-20 w-20 rounded-tr-[1.5rem] border-r-2 border-t-2 border-[#f3c969] [mask-image:linear-gradient(225deg,#000_10%,transparent_65%)]"
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute bottom-0 left-0 h-20 w-20 rounded-bl-[1.5rem] border-b-2 border-l-2 border-[#f3c969] [mask-image:linear-gradient(45deg,#000_10%,transparent_65%)]"
       />
     </div>
   );
