@@ -5,7 +5,7 @@ import Hexagon from "@/components/hexagon";
 import Icon, { type IconName } from "@/components/icons";
 import Reveal from "@/components/motion/reveal";
 import SectionPhoto from "@/components/section-photo";
-import { coachPhotoSrc } from "@/lib/store";
+import { DEFAULT_COACH_PHOTO, coachPhotoAt } from "@/lib/store";
 import { useDB } from "@/lib/use-store";
 
 /**
@@ -67,7 +67,6 @@ const ATHLETE_MASK =
 
 export default function Method() {
   const { method, settings } = useDB();
-  const coach = coachPhotoSrc(settings);
   const tagline = settings.tagline.trim() || "Rise. Grind. Shine.";
 
   return (
@@ -87,8 +86,11 @@ export default function Method() {
         className="pointer-events-none absolute -top-10 right-[20%] hidden h-[30rem] w-[32%] select-none lg:block xl:right-[24%] xl:w-[28%]"
       >
         <SectionPhoto
-          src={METHOD_ATHLETE}
-          fallback={coach}
+          sources={[
+            METHOD_ATHLETE,
+            coachPhotoAt(settings, 1),
+            DEFAULT_COACH_PHOTO,
+          ]}
           sizes="32vw"
           mask={ATHLETE_MASK}
           className="object-cover object-[50%_16%] opacity-70 contrast-[1.15] grayscale"
@@ -170,8 +172,11 @@ export default function Method() {
                     className="pointer-events-none absolute inset-y-0 right-0 w-[52%] [clip-path:polygon(24%_0,100%_0,100%_100%,0_100%)]"
                   >
                     <SectionPhoto
-                      src={art.photo || coach}
-                      fallback={coach}
+                      sources={[
+                        art.photo,
+                        coachPhotoAt(settings, index),
+                        DEFAULT_COACH_PHOTO,
+                      ]}
                       // Wider than the box it lands in, so the zoomed crops
                       // still have pixels to work with.
                       sizes="(min-width: 1280px) 30vw, (min-width: 640px) 45vw, 90vw"

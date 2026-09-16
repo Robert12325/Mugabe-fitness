@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { GoldCardGlow, goldCardClass } from "@/components/gold-card";
 import Icon, { type IconName } from "@/components/icons";
 import Reveal from "@/components/motion/reveal";
-import { coachPhotoSrc } from "@/lib/store";
+import SectionPhoto from "@/components/section-photo";
+import { DEFAULT_COACH_PHOTO, coachPhotoAt } from "@/lib/store";
 import { useDB } from "@/lib/use-store";
 
 const STEPS = [
@@ -60,8 +60,7 @@ const HEADER_PHOTO_MASK =
 
 export default function HowToStart() {
   const { settings } = useDB();
-  const photo = coachPhotoSrc(settings);
-  const unoptimized = !photo.startsWith("/");
+  const photo = coachPhotoAt(settings, 0);
 
   return (
     <section
@@ -79,17 +78,11 @@ export default function HowToStart() {
         aria-hidden
         className="pointer-events-none absolute -top-16 right-0 hidden h-[33rem] w-[34%] select-none lg:block xl:w-[38%]"
       >
-        <Image
-          src={photo}
-          alt=""
-          fill
+        <SectionPhoto
+          sources={[photo, DEFAULT_COACH_PHOTO]}
           sizes="42vw"
-          unoptimized={unoptimized}
+          mask={HEADER_PHOTO_MASK}
           className="object-cover object-[52%_14%] opacity-65 contrast-[1.15] grayscale"
-          style={{
-            maskImage: HEADER_PHOTO_MASK,
-            WebkitMaskImage: HEADER_PHOTO_MASK,
-          }}
         />
 
         {/* Without these the photo ends on a hard line where its mask meets
@@ -157,18 +150,16 @@ export default function HowToStart() {
                   aria-hidden
                   className="pointer-events-none absolute inset-y-0 right-0 w-[58%] [clip-path:polygon(26%_0,100%_0,100%_100%,0_100%)]"
                 >
-                  <Image
-                    src={photo}
-                    alt=""
-                    fill
+                  <SectionPhoto
+                    sources={[
+                      coachPhotoAt(settings, index + 1),
+                      photo,
+                      DEFAULT_COACH_PHOTO,
+                    ]}
                     // Wider than the box it lands in, so the zoomed crops
                     // below still have pixels to work with.
                     sizes="(min-width: 768px) 40vw, 90vw"
-                    unoptimized={unoptimized}
-                    style={{
-                      maskImage: CARD_PHOTO_FADE,
-                      WebkitMaskImage: CARD_PHOTO_FADE,
-                    }}
+                    mask={CARD_PHOTO_FADE}
                     className={`object-cover opacity-70 contrast-[1.2] grayscale transition duration-700 group-hover:opacity-90 ${step.crop}`}
                   />
                 </div>

@@ -106,17 +106,64 @@ export const DEFAULT_SETTINGS: Settings = {
   coachEmail: "robertmkamarajr@gmail.com",
   coachPhone: "+917879715012",
   coachPhoto: "",
+  coachPhotos: [],
   adminPasscode: "mugabe",
 };
 
-/** Ships in /public, so every visitor on every device gets it. A photo
- *  uploaded in the admin only overrides it in the browser that uploaded it. */
-export const DEFAULT_COACH_PHOTO = "/coach.jpg";
+/** How many pictures the site will spread around. */
+export const MAX_COACH_PHOTOS = 4;
 
-/** An empty setting means "no override", not "no photo" — so a browser that
- *  has saved `coachPhoto: ""` still shows the built-in photo. */
+/**
+ * Ship in /public, so every visitor on every device gets them. A photo
+ * uploaded in the admin only overrides it in the browser that uploaded it.
+ *
+ * Only the first is in the repo; drop `coach-2.jpg` and friends in beside it
+ * and the site picks them up. A slot whose file is missing falls back to the
+ * first photo at render time, so a half-filled set still looks finished.
+ */
+export const DEFAULT_COACH_PHOTOS = [
+  "/coach.jpg",
+  "/coach-2.jpg",
+  "/coach-3.jpg",
+  "/coach-4.jpg",
+];
+
+export const DEFAULT_COACH_PHOTO = DEFAULT_COACH_PHOTOS[0];
+
+/**
+ * The site's photos, in order — the admin's overrides where set, the
+ * built-in photo for that slot where not.
+ *
+ * An empty entry means "no override", not "no photo", so a browser that
+ * cleared a slot still shows the built-in one.
+ */
+export function coachPhotoList(settings: Settings) {
+  return DEFAULT_COACH_PHOTOS.map((fallback, index) => {
+    // Slot 0 also honours the old single-photo setting, so a browser that
+    // uploaded a photo before this existed doesn't appear to lose it.
+    const override =
+      index === 0
+        ? (settings.coachPhotos[0] ?? "").trim() || settings.coachPhoto.trim()
+        : (settings.coachPhotos[index] ?? "").trim();
+
+    return override || fallback;
+  });
+}
+
+/**
+ * The photo for one slot on the page. Slots beyond the set wrap around, so
+ * a section added later always gets a picture rather than nothing.
+ */
+export function coachPhotoAt(settings: Settings, slot: number) {
+  const photos = coachPhotoList(settings);
+
+  return photos[((slot % photos.length) + photos.length) % photos.length];
+}
+
+/** The first photo — what a single-photo caller (the admin preview, the
+ *  coach section) should show. */
 export function coachPhotoSrc(settings: Settings) {
-  return settings.coachPhoto.trim() || DEFAULT_COACH_PHOTO;
+  return coachPhotoAt(settings, 0);
 }
 
 export const DEFAULT_DB: DB = {
@@ -267,7 +314,23 @@ function normalize(raw: unknown): DB {
     payments: Array.isArray(input.payments)
       ? input.payments.map(normalizePayment)
       : [],
-    settings: { ...DEFAULT_SETTINGS, ...(input.settings ?? {}) },
+    settings: normalizeSettings(input.settings),
+  };
+}
+
+/** Backfills settings stored before `coachPhotos` existed, and guards
+ *  against an imported file carrying the wrong shape. */
+function normalizeSettings(raw: Partial<Settings> | undefined): Settings {
+  const merged = { ...DEFAULT_SETTINGS, ...(raw ?? {}) };
+
+  const photos = Array.isArray(merged.coachPhotos) ? merged.coachPhotos : [];
+
+  return {
+    ...merged,
+    coachPhoto: typeof merged.coachPhoto === "string" ? merged.coachPhoto : "",
+    coachPhotos: Array.from({ length: MAX_COACH_PHOTOS }, (_, index) =>
+      typeof photos[index] === "string" ? photos[index] : "",
+    ),
   };
 }
 

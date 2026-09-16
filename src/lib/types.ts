@@ -71,7 +71,12 @@ export type Settings = {
   tagline: string;
   coachEmail: string;
   coachPhone: string;
+  /** The first photo. Kept for browsers that saved settings before
+   *  `coachPhotos` existed. */
   coachPhoto: string;
+  /** Up to MAX_COACH_PHOTOS pictures, spread across the site's sections.
+   *  An empty slot falls through to the built-in photo for that slot. */
+  coachPhotos: string[];
   adminPasscode: string;
 };
 

@@ -6,7 +6,7 @@ import Hexagon from "@/components/hexagon";
 import Icon, { type IconName } from "@/components/icons";
 import Reveal from "@/components/motion/reveal";
 import SectionPhoto from "@/components/section-photo";
-import { coachPhotoSrc } from "@/lib/store";
+import { DEFAULT_COACH_PHOTO, coachPhotoAt } from "@/lib/store";
 import { useDB } from "@/lib/use-store";
 
 const REASONS = [
@@ -61,7 +61,6 @@ const ATHLETE_MASK =
 
 export default function WhyMugabe() {
   const { settings } = useDB();
-  const coach = coachPhotoSrc(settings);
   const tagline = settings.tagline.trim() || "Rise. Grind. Shine.";
 
   return (
@@ -81,8 +80,11 @@ export default function WhyMugabe() {
         className="pointer-events-none absolute inset-y-0 left-0 hidden w-[17rem] select-none xl:block 2xl:w-[21rem]"
       >
         <SectionPhoto
-          src={ATHLETE_PHOTO}
-          fallback={coach}
+          sources={[
+            ATHLETE_PHOTO,
+            coachPhotoAt(settings, 2),
+            DEFAULT_COACH_PHOTO,
+          ]}
           sizes="21rem"
           mask={ATHLETE_MASK}
           className="object-cover object-[58%_26%] opacity-95 contrast-[1.15] grayscale"
@@ -159,8 +161,11 @@ export default function WhyMugabe() {
                     className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] [clip-path:polygon(20%_0,100%_0,100%_100%,0_100%)] sm:block"
                   >
                     <SectionPhoto
-                      src={reason.photo}
-                      fallback={coach}
+                      sources={[
+                        reason.photo,
+                        coachPhotoAt(settings, index + 1),
+                        DEFAULT_COACH_PHOTO,
+                      ]}
                       sizes="(min-width: 1024px) 28vw, 45vw"
                       mask={ROW_PHOTO_FADE}
                       className="scale-[1.25] object-cover object-[50%_16%] opacity-90 contrast-[1.2] grayscale transition duration-700 group-hover:opacity-100"
