@@ -1,4 +1,9 @@
-import { loadDB, replaceSiteContent, subscribe } from "@/lib/store";
+import {
+  loadDB,
+  replaceSiteContent,
+  seedBuiltInPrograms,
+  subscribe,
+} from "@/lib/store";
 import { fetchSiteContent, saveSiteContent } from "@/lib/site-content-client";
 
 /**
@@ -162,13 +167,25 @@ export async function startContentSync(handleUnauthorized: () => void) {
     stopWatching();
     replaceSiteContent(result.programs, result.method);
     published = signature();
+
+    // Published content would otherwise hide programs added to the code
+    // since it was last saved, so top it up here and publish the result.
+    const seeded = seedBuiltInPrograms();
+
     watch();
-    setState({ status: "synced" });
+
+    if (seeded) {
+      await push();
+    } else {
+      setState({ status: "synced" });
+    }
+
     return;
   }
 
   // Nothing published yet: this dashboard's content becomes the published set.
   published = "";
+  seedBuiltInPrograms();
   watch();
   await push();
 }

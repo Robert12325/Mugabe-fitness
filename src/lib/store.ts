@@ -21,7 +21,7 @@ import {
 import { NO_PAYMENT, normalizeEnquiryPayment } from "@/lib/payment";
 
 export const STORAGE_KEY = "mugabe-fitness:v1";
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 const EVENT = "mugabe-store-change";
 
@@ -51,8 +51,31 @@ export const DEFAULT_PROGRAMS: Program[] = [
     active: true,
   },
   {
-    id: "mugabe-elite",
+    id: "mugabe-pro",
     number: "02",
+    name: "Mugabe Pro",
+    subtitle: "Personalized Fitness Coaching",
+    price: "₹10,000",
+    period: "/month",
+    description:
+      "A structured coaching program for clients who want more personalization and accountability than Mugabe Live, without the full premium equipment-training package of Mugabe Elite.",
+    features: [
+      "Personalized workout program",
+      "Individual fitness goals and progression",
+      "Weekly progress tracking",
+      "Nutrition guidance",
+      "Direct coach support",
+      "Exercise technique guidance",
+      "Regular adjustments based on progress",
+      "Flexible training approach",
+    ],
+    slots: [],
+    featured: false,
+    active: true,
+  },
+  {
+    id: "mugabe-elite",
+    number: "03",
     name: "Mugabe Elite",
     subtitle: "Premium Equipment Training",
     price: "₹15,000",
@@ -68,6 +91,25 @@ export const DEFAULT_PROGRAMS: Program[] = [
     ],
     slots: ["7–8 PM", "8–9 PM", "9–10 PM", "10–11 PM"],
     featured: true,
+    active: true,
+  },
+  {
+    id: "mugabe-signature",
+    number: "04",
+    name: "Mugabe Signature",
+    subtitle: "Private Coaching, Your Schedule",
+    price: "₹20,000",
+    period: "/month",
+    description:
+      "The most personal tier. Private coaching arranged around your own schedule, with the closest support and the fastest adjustments as you progress.",
+    features: [
+      "Training at a time you choose",
+      "Private one-to-one coaching",
+      "Fully personalized programming",
+      "Priority coach support",
+    ],
+    slots: ["Time of your choice"],
+    featured: false,
     active: true,
   },
 ];
@@ -258,6 +300,29 @@ function normalizePayment(raw: Partial<Payment>): Payment {
   };
 }
 
+/** Adds any built-in program the list is missing, and puts the built-in
+ *  numbers back in price order. Programs the coach added, and every edit
+ *  made to a built-in one, are left untouched. */
+function identity<T>(value: T): T {
+  return value;
+}
+
+function withBuiltInPrograms(programs: Program[]): Program[] {
+  const builtIn = new Map(DEFAULT_PROGRAMS.map((program) => [program.id, program]));
+
+  const aligned = programs.map((program) => {
+    const original = builtIn.get(program.id);
+    return original ? { ...program, number: original.number } : program;
+  });
+
+  const present = new Set(aligned.map((program) => program.id));
+
+  return [
+    ...aligned,
+    ...DEFAULT_PROGRAMS.filter((program) => !present.has(program.id)),
+  ];
+}
+
 /** Backfills a single program, so a record stored before a field existed
  *  (`slots`, say) still renders instead of throwing on `.map`. */
 function normalizeProgram(raw: Partial<Program>, storedVersion: number): Program {
@@ -300,8 +365,12 @@ function normalize(raw: unknown): DB {
     leads: Array.isArray(input.leads) ? input.leads.map(normalizeLead) : [],
     programs:
       Array.isArray(input.programs) && input.programs.length > 0
-        ? input.programs.map((program) =>
-            normalizeProgram(program, storedVersion),
+        ? // v4 introduced Mugabe Pro and Mugabe Signature. A list saved
+          // before that gains them once, keeping the coach edits.
+          (storedVersion < 4 ? withBuiltInPrograms : identity)(
+            input.programs.map((program) =>
+              normalizeProgram(program, storedVersion),
+            ),
           )
         : DEFAULT_PROGRAMS,
     method:
@@ -762,4 +831,40 @@ export function replaceSiteContent(programs: Program[], method: MethodStep[]) {
       text: step.text ?? "",
     })),
   }));
+}
+
+const BUILT_INS_KEY = "mugabe-fitness:built-ins";
+
+/** Bump when a new built-in program is added. */
+const BUILT_INS_VERSION = "pro-signature";
+
+/**
+ * Runs once per browser: brings the published programs up to date with any
+ * built-in ones added since. Without this, published content would hide new
+ * programs forever, because it always wins over the code.
+ *
+ * Returns true when something changed, so the caller can publish it.
+ */
+export function seedBuiltInPrograms() {
+  if (!isBrowser()) return false;
+
+  try {
+    if (window.localStorage.getItem(BUILT_INS_KEY) === BUILT_INS_VERSION) {
+      return false;
+    }
+
+    window.localStorage.setItem(BUILT_INS_KEY, BUILT_INS_VERSION);
+  } catch {
+    // Storage blocked: skip rather than re-seed on every single load.
+    return false;
+  }
+
+  const db = loadDB();
+  const programs = withBuiltInPrograms(db.programs);
+
+  if (JSON.stringify(programs) === JSON.stringify(db.programs)) return false;
+
+  saveDB({ ...db, programs });
+
+  return true;
 }
