@@ -69,7 +69,7 @@ export const DEFAULT_PROGRAMS: Program[] = [
       "Regular adjustments based on progress",
       "Flexible training approach",
     ],
-    slots: [],
+    slots: ["9:30–10:30 AM", "10:30–11:30 AM"],
     featured: false,
     active: true,
   },
@@ -312,7 +312,15 @@ function withBuiltInPrograms(programs: Program[]): Program[] {
 
   const aligned = programs.map((program) => {
     const original = builtIn.get(program.id);
-    return original ? { ...program, number: original.number } : program;
+
+    if (!original) return program;
+
+    return {
+      ...program,
+      number: original.number,
+      // Only fills a gap; times the coach actually set are left alone.
+      slots: program.slots.length > 0 ? program.slots : original.slots,
+    };
   });
 
   const present = new Set(aligned.map((program) => program.id));
@@ -836,7 +844,7 @@ export function replaceSiteContent(programs: Program[], method: MethodStep[]) {
 const BUILT_INS_KEY = "mugabe-fitness:built-ins";
 
 /** Bump when a new built-in program is added. */
-const BUILT_INS_VERSION = "pro-signature";
+const BUILT_INS_VERSION = "pro-signature-times";
 
 /**
  * Runs once per browser: brings the published programs up to date with any
