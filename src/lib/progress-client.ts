@@ -96,3 +96,25 @@ export function deleteEntry(token: string, on: string) {
     query: `?on=${encodeURIComponent(on)}`,
   });
 }
+
+/* ------------------------------------------------------------------ */
+/* Admin                                                               */
+/* ------------------------------------------------------------------ */
+
+/** The coach reading one client's log. Null when it can't be loaded. */
+export async function loadClientProgress(
+  userId: string,
+): Promise<Progress | null> {
+  try {
+    const response = await fetch(
+      `/api/admin/progress?userId=${encodeURIComponent(userId)}`,
+      { cache: "no-store" },
+    );
+
+    if (!response.ok) return null;
+
+    return readProgress(await response.json());
+  } catch {
+    return null;
+  }
+}

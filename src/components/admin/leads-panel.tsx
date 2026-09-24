@@ -10,6 +10,14 @@ import {
   type ServerState,
 } from "@/lib/enquiries-client";
 import type { PaymentReview } from "@/lib/payment";
+import {
+  chartPoints,
+  formatDeltaKg,
+  formatKg,
+  progressStats,
+  type Progress,
+} from "@/lib/progress";
+import { loadClientProgress } from "@/lib/progress-client";
 import { loadPaymentScreenshot } from "@/lib/payment-client";
 import {
   clearLeads,
@@ -497,6 +505,8 @@ function LeadRow({
             onReview={onReviewPayment}
           />
 
+          <ProgressBox lead={lead} online={online} />
+
           {lead.message && (
             <div className="mt-5">
               <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
@@ -595,6 +605,199 @@ async function openFullSize(src: string) {
 
   window.open(url, "_blank", "noopener");
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+type ProgressLoad =
+  | { state: "idle" }
+  | { state: "loading" }
+  | { state: "failed" }
+  | { state: "shown"; progress: Progress };
+
+/**
+ * The client's weight log, as the coach sees it: read-only, and fetched
+ * only when asked for — a list of thirty enquiries should not pull thirty
+ * logs nobody opened.
+ */
+function ProgressBox({ lead, online }: { lead: Lead; online: boolean }) {
+  const [load, setLoad] = useState<ProgressLoad>({ state: "idle" });
+
+  // A guest enquiry has no account, so there is no log to read.
+  if (!lead.userId) {
+    return (
+      <p className="mt-5 text-xs text-white/35">
+        Sent without an account, so there is no progress log.
+      </p>
+    );
+  }
+
+  function show() {
+    setLoad({ state: "loading" });
+
+    void loadClientProgress(lead.userId).then((progress) =>
+      setLoad(progress ? { state: "shown", progress } : { state: "failed" }),
+    );
+  }
+
+  return (
+    <div className="mt-5 rounded-xl border border-white/10 bg-black/40 p-4">
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
+        Progress
+      </p>
+
+      {load.state === "shown" ? (
+        <>
+          <ProgressSummary progress={load.progress} />
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Btn size="sm" onClick={show}>
+              Refresh
+            </Btn>
+
+            <Btn size="sm" onClick={() => setLoad({ state: "idle" })}>
+              Hide
+            </Btn>
+          </div>
+        </>
+      ) : (
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Btn
+            size="sm"
+            disabled={!online || load.state === "loading"}
+            onClick={show}
+          >
+            {load.state === "loading" ? "Loading\u2026" : "View progress"}
+          </Btn>
+
+          {load.state === "failed" && (
+            <span className="text-xs text-red-300">
+              That client&apos;s progress couldn&apos;t be loaded.
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProgressSummary({ progress }: { progress: Progress }) {
+  const stats = progressStats(progress);
+
+  if (stats.entryCount === 0) {
+    return (
+      <p className="mt-3 text-xs text-white/35">
+        No weigh-ins logged yet.
+      </p>
+    );
+  }
+
+  const cells = [
+    { label: "Start", value: formatKg(stats.startGrams) },
+    { label: "Now", value: formatKg(stats.currentGrams) },
+    {
+      label: "Target",
+      value: stats.targetGrams ? formatKg(stats.targetGrams) : "\u2014",
+    },
+    { label: "Change", value: formatDeltaKg(stats.changeGrams) },
+  ];
+
+  return (
+    <>
+      <dl className="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+        {cells.map((cell) => (
+          <div key={cell.label}>
+            <dt className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
+              {cell.label}
+            </dt>
+
+            <dd className="mt-1 font-black text-white">
+              {cell.value}
+              {cell.value !== "\u2014" && (
+                <span className="ml-1 text-[10px] font-bold text-white/40">
+                  kg
+                </span>
+              )}
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      {stats.targetGrams > 0 && (
+        <p className="mt-3 text-xs text-white/50">
+          {stats.reached
+            ? "Target reached."
+            : `${stats.percent}% of the way there, ${formatKg(stats.remainingGrams)} kg to go.`}
+        </p>
+      )}
+
+      {progress.entries.length >= 2 && <MiniChart progress={progress} />}
+
+      <ul className="mt-4 space-y-1.5">
+        {progress.entries.slice(0, 8).map((entry, index) => {
+          const previous = progress.entries[index + 1];
+          const delta = previous ? entry.grams - previous.grams : 0;
+
+          return (
+            <li
+              key={entry.on}
+              className="flex flex-wrap items-baseline gap-x-3 text-xs"
+            >
+              <span className="w-24 shrink-0 text-white/35">
+                {formatDate(entry.on)}
+              </span>
+
+              <span className="font-bold text-white/80">
+                {formatKg(entry.grams)} kg
+              </span>
+
+              {delta !== 0 && (
+                <span className="text-[#e8c05a]">{formatDeltaKg(delta)}</span>
+              )}
+
+              {entry.note && (
+                <span className="min-w-0 flex-1 break-words text-white/40">
+                  {entry.note}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      {progress.entries.length > 8 && (
+        <p className="mt-2 text-[11px] text-white/30">
+          Showing the last 8 of {progress.entries.length}.
+        </p>
+      )}
+    </>
+  );
+}
+
+/** Same shape as the client sees, at a glance size. */
+function MiniChart({ progress }: { progress: Progress }) {
+  const points = chartPoints(progress.entries);
+  const line = points.map((point) => `${point.x},${point.y}`).join(" ");
+
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      role="img"
+      aria-label={`Weight from ${formatKg(points[0].grams)} to ${formatKg(points[points.length - 1].grams)} kg`}
+      className="mt-4 h-20 w-full"
+    >
+      <polygon points={`0,100 ${line} 100,100`} fill="rgba(212,175,55,0.16)" />
+
+      <polyline
+        points={line}
+        fill="none"
+        stroke="#e8c05a"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
 }
 
 function PaymentBox({
