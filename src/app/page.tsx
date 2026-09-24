@@ -6,6 +6,7 @@ import WhyMugabe from "@/components/why-mugabe";
 import Coach from "@/components/coach";
 import HowToStart from "@/components/how-to-start";
 import EnquiryForm from "@/components/enquiry-form";
+import InstallApp from "@/components/install-app";
 import SiteContentSync from "@/components/site-content-sync";
 import SiteFooter from "@/components/site-footer";
 
@@ -22,6 +23,7 @@ export default function Home() {
       <HowToStart />
       <EnquiryForm />
       <SiteFooter />
+      <InstallApp />
     </main>
   );
 }
