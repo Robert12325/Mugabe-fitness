@@ -6,6 +6,7 @@ import Hexagon from "@/components/hexagon";
 import Icon, { type IconName } from "@/components/icons";
 import Reveal from "@/components/motion/reveal";
 import SectionPhoto from "@/components/section-photo";
+import { useT, type StringKey } from "@/lib/i18n";
 import { DEFAULT_COACH_PHOTO, coachPhotoAt } from "@/lib/store";
 import { useDB } from "@/lib/use-store";
 
@@ -13,34 +14,34 @@ const REASONS = [
   {
     number: "01",
     icon: "user",
-    title: "Personal",
-    accent: "Coaching",
-    text: "Training built around the individual—not a generic routine copied from someone else.",
+    title: "why.r1.title",
+    accent: "why.r1.accent",
+    text: "why.r1.text",
     /** Drop your own shot in /public under this name to use it. */
     photo: "/why-01.jpg",
   },
   {
     number: "02",
     icon: "target",
-    title: "Real",
-    accent: "Accountability",
-    text: "Consistent coaching, guidance, and structure designed to keep you moving forward.",
+    title: "why.r2.title",
+    accent: "why.r2.accent",
+    text: "why.r2.text",
     photo: "/why-02.jpg",
   },
   {
     number: "03",
     icon: "chart",
-    title: "Measurable",
-    accent: "Progress",
-    text: "Train with purpose, track your development, and build progress you can actually see.",
+    title: "why.r3.title",
+    accent: "why.r3.accent",
+    text: "why.r3.text",
     photo: "/why-03.jpg",
   },
 ] as const satisfies readonly {
   number: string;
   icon: IconName;
-  title: string;
-  accent: string;
-  text: string;
+  title: StringKey;
+  accent: StringKey;
+  text: StringKey;
   photo: string;
 }[];
 
@@ -57,6 +58,7 @@ const ATHLETE_MASK =
   "radial-gradient(ellipse 74% 52% at 50% 42%, #000 48%, transparent 100%)";
 
 export default function WhyMugabe() {
+  const t = useT();
   const { settings } = useDB();
   const tagline = settings.tagline.trim() || "Rise. Grind. Shine.";
 
@@ -93,9 +95,9 @@ export default function WhyMugabe() {
 
         {/* "Stronger Together", brushed across the foot of the figure. */}
         <p className="absolute bottom-[6%] left-[6%] -rotate-[12deg] bg-[linear-gradient(90deg,#c98f28,#f3c969_55%,#fbe3a0)] bg-clip-text pr-3 font-[family-name:var(--font-script)] text-[2.1rem] leading-[0.95] text-transparent">
-          Stronger
+          {t("why.script")}
           <br />
-          <span className="ml-6">Together</span>
+          <span className="ml-6">{t("why.together")}</span>
         </p>
       </div>
 
@@ -109,27 +111,27 @@ export default function WhyMugabe() {
         <div className="grid gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.5fr)] lg:gap-10 xl:gap-14">
           <Reveal className="lg:flex lg:flex-col">
             <p className="text-xs font-bold uppercase tracking-[0.32em] text-[#f5c518]">
-              Why Mugabe Fitness
+              {t("why.eyebrow")}
             </p>
 
             {/* Gradient text is only painted inside its own box, so each line
                 is sized to the word rather than to the column. */}
             <h2 className="mt-5 text-[clamp(2.4rem,7.5vw,4.25rem)] font-black uppercase leading-[0.92] tracking-[-0.02em]">
               <span className="block w-max bg-[linear-gradient(180deg,#ffffff_35%,#b9b9b9)] bg-clip-text text-transparent">
-                Built for
+                {t("why.h1")}
               </span>
 
               <span className="block w-max bg-[linear-gradient(100deg,#e2a900,#f5c518_36%,#fff3b0_52%,#f5c518_66%,#c98f28)] bg-clip-text pr-[0.12em] italic text-transparent">
-                Serious
+                {t("why.h2")}
               </span>
 
               <span className="block w-max bg-[linear-gradient(180deg,#ffffff_35%,#b9b9b9)] bg-clip-text text-transparent">
-                People.
+                {t("why.h3")}
               </span>
             </h2>
 
             <p className="mt-7 text-[0.7rem] font-bold uppercase tracking-[0.28em] text-white/45">
-              Discipline builds freedom.
+              {t("why.note")}
             </p>
 
             <span
@@ -202,12 +204,12 @@ export default function WhyMugabe() {
 
                     <div className="relative min-w-0 flex-1">
                       <h3 className="text-lg font-black uppercase leading-[1.1] tracking-tight sm:text-xl">
-                        <span className="text-white">{reason.title}</span>{" "}
-                        <span className="text-[#f5c518]">{reason.accent}</span>
+                        <span className="text-white">{t(reason.title)}</span>{" "}
+                        <span className="text-[#f5c518]">{t(reason.accent)}</span>
                       </h3>
 
                       <p className="mt-2 text-sm leading-6 text-white/60">
-                        {reason.text}
+                        {t(reason.text)}
                       </p>
                     </div>
                   </div>

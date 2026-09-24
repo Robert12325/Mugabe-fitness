@@ -1,4 +1,7 @@
+"use client";
+
 import AthletePhoto from "@/components/athlete-photo";
+import { useT } from "@/lib/i18n";
 
 /**
  * The backdrop of the dark contact section: the athlete down the left edge,
@@ -8,6 +11,8 @@ import AthletePhoto from "@/components/athlete-photo";
  * intercepts a tap meant for the form.
  */
 export default function ContactScene() {
+  const t = useT();
+
   return (
     <div
       aria-hidden
@@ -34,9 +39,9 @@ export default function ContactScene() {
       {/* "Stronger Together", brushed across the foot of the photo. */}
       <div className="absolute bottom-[8%] left-[2%] hidden -rotate-[10deg] xl:block">
         <p className="bg-[linear-gradient(90deg,#e2472c,#f0a33c_55%,#f6d27a)] bg-clip-text pr-3 font-[family-name:var(--font-script)] text-[3.4rem] leading-[0.95] text-transparent">
-          Stronger
+          {t("scene.stronger")}
           <br />
-          <span className="ml-10">Together</span>
+          <span className="ml-10">{t("scene.together")}</span>
         </p>
 
         <svg viewBox="0 0 220 18" className="ml-8 mt-1 h-4 w-52">

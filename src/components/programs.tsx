@@ -13,19 +13,20 @@ import {
   subscribeSession,
 } from "@/lib/account-client";
 import { chooseProgram } from "@/lib/chosen-plan";
+import { useT, type StringKey } from "@/lib/i18n";
 import { DEFAULT_COACH_PHOTO, coachPhotoAt } from "@/lib/store";
 import { byNumber } from "@/lib/order";
 import { useDB } from "@/lib/use-store";
 
 /** The promises above the cards. */
 const PROMISES = [
-  { icon: "dumbbell", top: "Stronger", bottom: "Everyday" },
-  { icon: "chart", top: "Real", bottom: "Progress" },
-  { icon: "bolt", top: "Discipline", bottom: "For life" },
+  { icon: "dumbbell", top: "programs.p1.top", bottom: "programs.p1.bottom" },
+  { icon: "chart", top: "programs.p2.top", bottom: "programs.p2.bottom" },
+  { icon: "bolt", top: "programs.p3.top", bottom: "programs.p3.bottom" },
 ] as const satisfies readonly {
   icon: IconName;
-  top: string;
-  bottom: string;
+  top: StringKey;
+  bottom: StringKey;
 }[];
 
 /**
@@ -48,6 +49,7 @@ function featureIcon(feature: string): IconName {
 }
 
 export default function Programs() {
+  const t = useT();
   const db = useDB();
   const router = useRouter();
   const programs = byNumber(db.programs.filter((program) => program.active));
@@ -105,11 +107,11 @@ export default function Programs() {
 
         {/* "Better Stronger You", brushed beside the athlete. */}
         <p className="absolute right-3 top-[14%] hidden -rotate-[8deg] bg-[linear-gradient(90deg,#c98f28,#f3c969_55%,#fbe3a0)] bg-clip-text pr-3 text-right font-[family-name:var(--font-script)] text-[2.1rem] leading-[1.05] text-transparent xl:block">
-          Better
+          {t("programs.script1")}
           <br />
-          <span className="mr-4">Stronger</span>
+          <span className="mr-4">{t("programs.script2")}</span>
           <br />
-          <span className="mr-10">You</span>
+          <span className="mr-10">{t("programs.script3")}</span>
         </p>
       </div>
 
@@ -119,25 +121,23 @@ export default function Programs() {
             <div className="lg:w-[52%] lg:shrink-0 xl:w-[48%]">
               <p className="flex items-center gap-4 text-xs font-bold uppercase tracking-[0.32em] text-[#f5c518]">
                 <span aria-hidden className="h-0.5 w-10 shrink-0 bg-[#f5c518]" />
-                Choose Your Level
+                {t("programs.eyebrow")}
               </p>
 
               {/* Gradient text is only painted inside its own box, so each
                   line is sized to the word rather than to the column. */}
               <h2 className="mt-6 text-[clamp(2.1rem,6vw,3.4rem)] font-black uppercase leading-[0.92] tracking-[-0.02em]">
                 <span className="block w-max bg-[linear-gradient(180deg,#ffffff_35%,#b9b9b9)] bg-clip-text text-transparent">
-                  Your training.
+                  {t("programs.h1")}
                 </span>
 
                 <span className="block w-max bg-[linear-gradient(100deg,#e2a900,#f5c518_36%,#fff3b0_52%,#f5c518_66%,#c98f28)] bg-clip-text pr-[0.12em] text-transparent">
-                  Your level.
+                  {t("programs.h2")}
                 </span>
               </h2>
 
               <p className="mt-7 max-w-lg text-sm leading-7 text-white/60">
-                Two coaching experiences. One standard of commitment. Choose
-                the level that matches your goals and start building the body,
-                strength, and discipline you want.
+                {t("programs.lede")}
               </p>
             </div>
 
@@ -157,10 +157,10 @@ export default function Programs() {
                   </span>
 
                   <span className="text-[11px] font-black uppercase leading-[1.5] tracking-[0.12em] text-white">
-                    {promise.top}
+                    {t(promise.top)}
                     <br />
-                    <span className="font-bold text-white/45">
-                      {promise.bottom}
+                    <span className="font-bold text-white/55">
+                      {t(promise.bottom)}
                     </span>
                   </span>
                 </li>
@@ -217,7 +217,7 @@ export default function Programs() {
                         {program.featured && (
                           <span className="ml-auto flex items-center gap-2 rounded-full bg-[linear-gradient(100deg,#f5c518,#fff3b0_50%,#e2a900)] px-3.5 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-black">
                             <Icon name="crown" solid className="h-3.5 w-3.5" />
-                            Premium
+                            {t("programs.premium")}
                           </span>
                         )}
                       </div>
@@ -288,8 +288,8 @@ export default function Programs() {
 
                       {program.slots.length > 0 && (
                         <div className="mt-6 border-t border-white/10 pt-6">
-                          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.22em] text-white/45">
-                            Training slots
+                          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.22em] text-white/55">
+                            {t("programs.slots")}
                           </p>
 
                           <ul className="flex flex-wrap gap-2">
@@ -333,12 +333,15 @@ export default function Programs() {
                           />
                         </span>
 
-                        Choose {program.name}
+                        {t("programs.choose").replace(
+                          "{name}",
+                          program.name,
+                        )}
                       </a>
 
                       {!session && (
-                        <p className="mt-3 text-center text-xs text-white/45">
-                          You&apos;ll log in or create an account first.
+                        <p className="mt-3 text-center text-xs text-white/55">
+                          {t("programs.loginNote")}
                         </p>
                       )}
                     </div>

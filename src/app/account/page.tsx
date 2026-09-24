@@ -20,6 +20,7 @@ import {
   parseRegistration,
   PASSWORD_MIN,
   type AccountBooking,
+  type AuthErrorCode,
 } from "@/lib/account";
 import {
   fetchAccount,
@@ -33,6 +34,7 @@ import {
   type Session,
 } from "@/lib/account-client";
 import { parseMoney } from "@/lib/billing";
+import { useT, type StringKey } from "@/lib/i18n";
 import {
   getChosenPlan,
   getChosenPlanOnServer,
@@ -49,27 +51,27 @@ const subscribeNothing = () => () => {};
 
 const BOOKING_STATUS: Record<
   EnquiryPaymentStatus,
-  { label: string; badge: string; action: string }
+  { label: StringKey; badge: string; action: StringKey }
 > = {
   none: {
-    label: "Payment due",
+    label: "status.none",
     badge: "border-white/20 bg-white/5 text-white/70",
-    action: "Pay now",
+    action: "status.none.action",
   },
   submitted: {
-    label: "Under review",
+    label: "status.submitted",
     badge: "border-amber-300/40 bg-amber-400/10 text-amber-200",
-    action: "View status",
+    action: "status.submitted.action",
   },
   verified: {
-    label: "Confirmed",
+    label: "status.verified",
     badge: "border-[#5cc98a]/35 bg-[#2ea55c]/15 text-[#5cc98a]",
-    action: "View",
+    action: "status.verified.action",
   },
   rejected: {
-    label: "Payment rejected",
+    label: "status.rejected",
     badge: "border-[#f0928c]/40 bg-[#c0453d]/15 text-[#f0928c]",
-    action: "Pay again",
+    action: "status.rejected.action",
   },
 };
 
@@ -122,9 +124,7 @@ export default function AccountPage() {
       <AccountHeader />
 
       {!hydrated ? null : continuing ? (
-        <p role="status" className="px-5 pt-16 text-center text-sm text-white/55">
-          Taking you to your booking…
-        </p>
+        <Continuing />
       ) : session ? (
         <div className="mx-auto max-w-5xl px-5 pb-16 pt-6 sm:px-6 sm:pb-20">
           <Dashboard key={session.token} session={session} />
@@ -136,7 +136,18 @@ export default function AccountPage() {
   );
 }
 
+function Continuing() {
+  const t = useT();
+
+  return (
+    <p role="status" className="px-5 pt-16 text-center text-sm text-white/55">
+      {t("auth.continuing")}
+    </p>
+  );
+}
+
 function AccountHeader() {
+  const t = useT();
   const { settings } = useDB();
   const tagline = settings.tagline.trim() || "Rise. Grind. Shine.";
 
@@ -144,7 +155,7 @@ function AccountHeader() {
     <header className="relative z-20 mx-auto flex max-w-[110rem] items-center justify-between gap-6 px-5 py-5 sm:px-8 lg:px-12 lg:py-7">
       <Link
         href="/"
-        aria-label="Mugabe Fitness home"
+        aria-label={t("auth.home")}
         className="flex shrink-0 items-center gap-3"
       >
         <BrandMark className="h-10 w-10 sm:h-12 sm:w-12" />
@@ -175,28 +186,39 @@ function AccountHeader() {
 type Mode = "login" | "register";
 
 const TABS = [
-  { id: "login", label: "Log in" },
-  { id: "register", label: "Create account" },
-] as const;
+  { id: "login", label: "auth.tab.login" },
+  { id: "register", label: "auth.tab.register" },
+] as const satisfies readonly { id: Mode; label: StringKey }[];
 
-const COPY = {
+const COPY: Record<Mode, Record<string, StringKey>> = {
   login: {
-    top: "Welcome",
-    accent: "Back",
-    line: "Track your progress. Stay consistent. Build the stronger you.",
-    submit: "Log in",
-    switchPrompt: "New to Mugabe Fitness?",
-    switchLabel: "Create an account",
+    top: "auth.login.top",
+    accent: "auth.login.accent",
+    line: "auth.login.line",
+    submit: "auth.login.submit",
+    switchPrompt: "auth.login.prompt",
+    switchLabel: "auth.login.switch",
   },
   register: {
-    top: "Join the",
-    accent: "Grind",
-    line: "Book your coaching, pay by UPI, and follow every booking from any device.",
-    submit: "Create account",
-    switchPrompt: "Already training with us?",
-    switchLabel: "Log in instead",
+    top: "auth.register.top",
+    accent: "auth.register.accent",
+    line: "auth.register.line",
+    submit: "auth.register.submit",
+    switchPrompt: "auth.register.prompt",
+    switchLabel: "auth.register.switch",
   },
-} as const;
+};
+
+/** The English message travels with the failure; this is its Hindi twin. */
+const AUTH_ERROR: Record<AuthErrorCode, StringKey> = {
+  nameMissing: "auth.err.name",
+  nameLong: "auth.err.nameLong",
+  phone: "form.err.phone",
+  email: "form.err.email",
+  passwordShort: "auth.err.pwShort",
+  passwordLong: "auth.err.pwLong",
+  passwordMissing: "auth.err.pwMissing",
+};
 
 const EMPTY_FIELDS = { name: "", email: "", phone: "", password: "" };
 
@@ -205,6 +227,7 @@ const authInputClass =
   "w-full rounded-full border border-white/10 bg-white/[0.04] py-4 pl-14 pr-5 text-[15px] text-white outline-none transition [color-scheme:dark] placeholder:text-white/40 hover:border-white/25 focus:border-[#e0b54a]/70 focus:bg-white/[0.06] focus:shadow-[0_0_0_3px_rgba(224,181,74,0.12)]";
 
 function AuthPanel({ planId }: { planId: string }) {
+  const t = useT();
   const db = useDB();
   const planName = db.programs.find((program) => program.id === planId)?.name;
   const [mode, setMode] = useState<Mode>("login");
@@ -218,6 +241,10 @@ function AuthPanel({ planId }: { planId: string }) {
 
   function set(field: keyof typeof EMPTY_FIELDS, value: string) {
     setValues((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function authError(code: AuthErrorCode) {
+    return t(AUTH_ERROR[code]).replace("{min}", String(PASSWORD_MIN));
   }
 
   function switchMode(next: Mode) {
@@ -240,7 +267,7 @@ function AuthPanel({ planId }: { planId: string }) {
       const parsed = parseRegistration(values);
 
       if (!parsed.ok) {
-        setErrors({ [parsed.field]: parsed.error });
+        setErrors({ [parsed.field]: authError(parsed.code) });
         return;
       }
 
@@ -251,7 +278,7 @@ function AuthPanel({ planId }: { planId: string }) {
       const parsed = parseCredentials(values);
 
       if (!parsed.ok) {
-        setErrors({ [parsed.field]: parsed.error });
+        setErrors({ [parsed.field]: authError(parsed.code) });
         return;
       }
 
@@ -274,19 +301,19 @@ function AuthPanel({ planId }: { planId: string }) {
       <div className="relative mx-auto grid max-w-[80rem] gap-12 px-5 pb-16 pt-6 sm:px-8 lg:min-h-[calc(100svh-7rem)] lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:items-center lg:gap-10 lg:px-12 lg:pb-20 xl:grid-cols-[minmax(0,1fr)_minmax(0,31rem)] xl:pl-[13rem] 2xl:pl-[17rem]">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.45em] text-[#e0b54a]">
-            Your account
+            {t("auth.eyebrow")}
           </p>
 
           {/* Each line is sized to its words: gradient text only paints
               inside its own box. */}
           <h1 className="mt-4 font-black uppercase leading-[0.92] tracking-[-0.01em]">
             <span className="block w-max bg-[linear-gradient(180deg,#ffffff,#cfcfcf)] bg-clip-text text-[clamp(2.6rem,7.5vw,4.5rem)] text-transparent 2xl:text-[5rem]">
-              {copy.top}
+              {t(copy.top)}
             </span>
 
             <span className="relative mt-1 block w-max pb-4">
               <span className="block bg-[linear-gradient(100deg,#fbe3a0_0%,#e8b54a_40%,#c98f28_75%,#f3c969_100%)] bg-clip-text pr-[0.14em] text-[clamp(3.2rem,10vw,6rem)] italic text-transparent">
-                {copy.accent}
+                {t(copy.accent)}
               </span>
 
               <svg
@@ -311,7 +338,7 @@ function AuthPanel({ planId }: { planId: string }) {
           </h1>
 
           <p className="mt-7 max-w-sm text-lg leading-8 text-white/85">
-            {copy.line}
+            {t(copy.line)}
           </p>
 
           {planId && (
@@ -320,12 +347,13 @@ function AuthPanel({ planId }: { planId: string }) {
               className="mt-7 max-w-md rounded-2xl border border-[#e0b54a]/35 bg-[#e0b54a]/10 p-4 text-sm leading-6"
             >
               <p className="font-bold text-[#f0c96a]">
-                {planName ? `You chose ${planName}.` : "You chose a plan."}
+                {planName
+                  ? t("auth.chose").replace("{name}", planName)
+                  : t("auth.chosePlain")}
               </p>
 
               <p className="mt-1 text-white/70">
-                Log in or create an account to continue — you&apos;ll go
-                straight to the booking form next.
+                {t("auth.choseNote")}
               </p>
             </div>
           )}
@@ -343,7 +371,7 @@ function AuthPanel({ planId }: { planId: string }) {
           <div className="relative">
             <div
               role="tablist"
-              aria-label="Log in or create an account"
+              aria-label={t("auth.tablist")}
               className="flex items-end gap-5 border-b border-white/10 sm:gap-8"
             >
               <span
@@ -372,7 +400,7 @@ function AuthPanel({ planId }: { planId: string }) {
                         active ? "text-white" : "text-white/45 hover:text-white/75"
                       }`}
                     >
-                      {tab.label}
+                      {t(tab.label)}
                     </span>
 
                     <span
@@ -391,7 +419,7 @@ function AuthPanel({ planId }: { planId: string }) {
                 <>
                   <AuthField
                     id="account-name"
-                    label="Full name"
+                    label={t("auth.fullName")}
                     icon="user"
                     error={errors.name}
                   >
@@ -401,14 +429,14 @@ function AuthPanel({ planId }: { planId: string }) {
                       maxLength={100}
                       value={values.name}
                       onChange={(event) => set("name", event.target.value)}
-                      placeholder="Your full name"
+                      placeholder={t("form.namePh")}
                       className={authInputClass}
                     />
                   </AuthField>
 
                   <AuthField
                     id="account-phone"
-                    label="Phone"
+                    label={t("form.phone")}
                     icon="phone"
                     error={errors.phone}
                   >
@@ -420,7 +448,7 @@ function AuthPanel({ planId }: { planId: string }) {
                       maxLength={30}
                       value={values.phone}
                       onChange={(event) => set("phone", event.target.value)}
-                      placeholder="+91 00000 00000"
+                      placeholder={t("form.phonePh")}
                       className={authInputClass}
                     />
                   </AuthField>
@@ -429,7 +457,7 @@ function AuthPanel({ planId }: { planId: string }) {
 
               <AuthField
                 id="account-email"
-                label="Email address"
+                label={t("auth.emailLabel")}
                 icon="mail"
                 error={errors.email}
               >
@@ -441,19 +469,19 @@ function AuthPanel({ planId }: { planId: string }) {
                   maxLength={200}
                   value={values.email}
                   onChange={(event) => set("email", event.target.value)}
-                  placeholder="you@example.com"
+                  placeholder={t("form.emailPh")}
                   className={authInputClass}
                 />
               </AuthField>
 
               <AuthField
                 id="account-password"
-                label="Password"
+                label={t("auth.password")}
                 icon="lock"
                 error={errors.password}
                 hint={
                   mode === "register" && !errors.password
-                    ? `At least ${PASSWORD_MIN} characters.`
+                    ? t("auth.pwHint").replace("{min}", String(PASSWORD_MIN))
                     : undefined
                 }
               >
@@ -467,7 +495,9 @@ function AuthPanel({ planId }: { planId: string }) {
                   value={values.password}
                   onChange={(event) => set("password", event.target.value)}
                   placeholder={
-                    mode === "login" ? "Enter your password" : "Create a password"
+                    mode === "login"
+                      ? t("auth.pwPhLogin")
+                      : t("auth.pwPhRegister")
                   }
                   className={`${authInputClass} pr-14`}
                 />
@@ -475,7 +505,7 @@ function AuthPanel({ planId }: { planId: string }) {
                 <button
                   type="button"
                   onClick={() => setShowPassword((shown) => !shown)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? t("auth.hidePw") : t("auth.showPw")}
                   aria-pressed={showPassword}
                   className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-white/70 transition hover:bg-white/5 hover:text-white"
                 >
@@ -499,7 +529,7 @@ function AuthPanel({ planId }: { planId: string }) {
               className="group mt-8 flex w-full items-center justify-center gap-3 rounded-full bg-[linear-gradient(180deg,#f6d27a,#e0ac3c_55%,#b88420)] px-7 py-4 text-black shadow-[0_14px_36px_-14px_rgba(224,172,60,0.7)] transition hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
             >
               <span className="text-base font-extrabold uppercase tracking-[0.08em]">
-                {busy ? "Please wait…" : copy.submit}
+                {busy ? t("auth.wait") : t(copy.submit)}
               </span>
 
               {!busy && (
@@ -512,7 +542,7 @@ function AuthPanel({ planId }: { planId: string }) {
 
             <div className="my-6 flex items-center gap-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/40">
               <span aria-hidden className="h-px flex-1 bg-white/10" />
-              or
+              {t("auth.or")}
               <span aria-hidden className="h-px flex-1 bg-white/10" />
             </div>
 
@@ -521,9 +551,11 @@ function AuthPanel({ planId }: { planId: string }) {
               onClick={() => switchMode(mode === "login" ? "register" : "login")}
               className="flex w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-full border border-white/20 px-6 py-4 transition hover:border-[#e0b54a]/70"
             >
-              <span className="text-sm text-white/60">{copy.switchPrompt}</span>
+              <span className="text-sm text-white/60">
+                {t(copy.switchPrompt)}
+              </span>
               <span className="text-sm font-bold text-[#f0c96a]">
-                {copy.switchLabel}
+                {t(copy.switchLabel)}
               </span>
             </button>
           </div>
@@ -576,6 +608,8 @@ function AuthField({
 
 /** The athlete, gold light and slashes behind the log-in page. */
 function AuthBackdrop() {
+  const t = useT();
+
   return (
     <div
       aria-hidden
@@ -599,9 +633,9 @@ function AuthBackdrop() {
       {/* "Stronger Together", brushed across the foot of the photo. */}
       <div className="absolute bottom-[7%] left-[2%] hidden -rotate-[12deg] xl:block">
         <p className="bg-[linear-gradient(90deg,#c98f28,#f3c969_60%,#fbe3a0)] bg-clip-text pr-3 font-[family-name:var(--font-script)] text-[3.4rem] leading-[0.95] text-transparent">
-          Stronger
+          {t("scene.stronger")}
           <br />
-          <span className="ml-10">Together</span>
+          <span className="ml-10">{t("scene.together")}</span>
         </p>
 
         <svg viewBox="0 0 220 18" className="ml-8 mt-1 h-4 w-52">
@@ -628,6 +662,7 @@ function AuthBackdrop() {
 /* ------------------------------------------------------------------ */
 
 function Dashboard({ session }: { session: Session }) {
+  const t = useT();
   const db = useDB();
   const { token, user } = session;
   const [load, setLoad] = useState<AccountLoad | "loading">("loading");
@@ -666,18 +701,18 @@ function Dashboard({ session }: { session: Session }) {
     [db.programs],
   );
 
-  const firstName = user.name.split(" ")[0] || "there";
+  const firstName = user.name.split(" ")[0] || t("dash.there");
 
   return (
     <div className="space-y-10">
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.35em] text-[#d4af37]">
-            Your account
+            {t("auth.eyebrow")}
           </p>
 
           <h1 className="mt-4 text-4xl font-black uppercase leading-none tracking-tight text-white sm:text-5xl">
-            Hi, {firstName}
+            {t("dash.hi").replace("{name}", firstName)}
           </h1>
         </div>
 
@@ -686,24 +721,24 @@ function Dashboard({ session }: { session: Session }) {
           onClick={() => void logOut(session)}
           className="rounded-full border border-white/15 px-5 py-2.5 text-xs font-black uppercase tracking-[0.12em] text-white/70 transition hover:border-white/40 hover:text-white"
         >
-          Log out
+          {t("dash.logout")}
         </button>
       </div>
 
       <section className="rounded-2xl border border-white/10 bg-[#0b0b0b] p-6">
         <h2 className="text-sm font-black uppercase tracking-wide text-white">
-          Profile
+          {t("dash.profile")}
         </h2>
 
         <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-3">
           {[
-            { label: "Name", value: user.name },
-            { label: "Email", value: user.email },
-            { label: "Phone", value: user.phone },
+            { label: "form.name" as StringKey, value: user.name },
+            { label: "form.email" as StringKey, value: user.email },
+            { label: "form.phone" as StringKey, value: user.phone },
           ].map((item) => (
             <div key={item.label} className="min-w-0">
               <dt className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
-                {item.label}
+                {t(item.label)}
               </dt>
 
               <dd className="mt-1.5 break-words text-white/75">
@@ -717,26 +752,26 @@ function Dashboard({ session }: { session: Session }) {
       <section>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <h2 className="text-lg font-black uppercase tracking-wide text-white">
-            Bookings
+            {t("dash.bookings")}
           </h2>
 
           <Link
             href="/#contact"
             className="rounded-full bg-[#d4af37] px-5 py-2.5 text-xs font-black uppercase tracking-[0.12em] text-black transition hover:bg-white"
           >
-            New booking
+            {t("dash.newBooking")}
           </Link>
         </div>
 
         {load === "loading" ? (
-          <p className="mt-6 text-sm text-white/45">Loading your bookings…</p>
+          <p className="mt-6 text-sm text-white/45">{t("dash.loading")}</p>
         ) : load.state === "offline" ? (
           <p className="mt-6 rounded-xl border border-amber-400/25 bg-amber-400/[0.06] p-4 text-sm leading-6 text-amber-200/85">
-            Bookings can&apos;t be loaded right now. Please try again later.
+            {t("dash.offline")}
           </p>
         ) : load.state === "error" ? (
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-sm text-red-300">
-            <span>Couldn&apos;t load your bookings.</span>
+            <span>{t("dash.error")}</span>
 
             <button
               type="button"
@@ -746,13 +781,12 @@ function Dashboard({ session }: { session: Session }) {
               }}
               className="rounded-full border border-white/15 px-4 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white/80 transition hover:border-white/40"
             >
-              Retry
+              {t("dash.retry")}
             </button>
           </div>
         ) : load.state === "signed-out" ? null : load.bookings.length === 0 ? (
           <div className="mt-6 rounded-2xl border border-dashed border-white/12 px-6 py-14 text-center text-sm leading-7 text-white/40">
-            No bookings yet. Pick a program and send a request while signed in
-            — it will show up here.
+            {t("dash.empty")}
           </div>
         ) : (
           <ul className="mt-6 space-y-4">
@@ -806,6 +840,7 @@ function BookingCard({
   onRetrySettings: () => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const status = BOOKING_STATUS[booking.payment.status];
 
   // Without a program there is no amount to pay; the coach follows up.
@@ -820,7 +855,7 @@ function BookingCard({
       <div className="flex flex-wrap items-center gap-x-5 gap-y-3 p-5">
         <div className="min-w-0 flex-1">
           <p className="text-base font-black uppercase tracking-wide text-white">
-            {program?.name ?? "Program to be decided"}
+            {program?.name ?? t("dash.tbd")}
           </p>
 
           {details && <p className="mt-1 text-xs text-white/45">{details}</p>}
@@ -829,7 +864,7 @@ function BookingCard({
         <span
           className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${status.badge}`}
         >
-          {canOpen ? status.label : "Coach will contact you"}
+          {canOpen ? t(status.label) : t("dash.willContact")}
         </span>
 
         {canOpen && (
@@ -839,7 +874,7 @@ function BookingCard({
             onClick={onToggle}
             className="rounded-full border border-white/15 px-4 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white/80 transition hover:border-[#d4af37] hover:text-white"
           >
-            {open ? "Close" : status.action}
+            {open ? t("pay.close") : t(status.action)}
           </button>
         )}
       </div>

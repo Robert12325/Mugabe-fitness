@@ -28,6 +28,7 @@ import {
   subscribeChosenPlan,
 } from "@/lib/chosen-plan";
 import { submitEnquiry } from "@/lib/enquiries-client";
+import { useT, type StringKey } from "@/lib/i18n";
 import { paymentsEnabled } from "@/lib/payment";
 import {
   clearBooking,
@@ -40,12 +41,12 @@ import {
 } from "@/lib/payment-client";
 import { useDB } from "@/lib/use-store";
 
-const GOALS = [
-  "Fat loss",
-  "Muscle gain",
-  "Strength",
-  "General fitness",
-  "Sport performance",
+const GOALS: { value: string; label: StringKey }[] = [
+  { value: "Fat loss", label: "form.goal.fat" },
+  { value: "Muscle gain", label: "form.goal.muscle" },
+  { value: "Strength", label: "form.goal.strength" },
+  { value: "General fitness", label: "form.goal.general" },
+  { value: "Sport performance", label: "form.goal.sport" },
 ];
 
 const EMPTY = {
@@ -54,7 +55,7 @@ const EMPTY = {
   phone: "",
   programId: "",
   slot: "",
-  goal: GOALS[0],
+  goal: GOALS[0].value,
   message: "",
   /** Honeypot — hidden from people, filled in by bots. */
   company: "",
@@ -89,6 +90,7 @@ function formFor(session: Session | null) {
 }
 
 export default function EnquiryForm() {
+  const t = useT();
   const db = useDB();
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -218,21 +220,21 @@ export default function EnquiryForm() {
   function validate(needsProgram: boolean) {
     const next: Record<string, string> = {};
 
-    if (!form.name.trim()) next.name = "Please enter your name.";
+    if (!form.name.trim()) next.name = t("form.err.name");
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      next.email = "Please enter a valid email.";
+      next.email = t("form.err.email");
     }
 
     const digits = form.phone.replace(/\D/g, "").length;
 
     if (digits < 7 || digits > 15) {
-      next.phone = "Please enter a valid phone number.";
+      next.phone = t("form.err.phone");
     }
 
     // Payment needs an amount, and the amount comes from the program.
     if (needsProgram && !selected) {
-      next.programId = "Choose a program to continue to payment.";
+      next.programId = t("form.err.program");
     }
 
     return next;
@@ -347,19 +349,19 @@ export default function EnquiryForm() {
               <span className="h-px w-4 bg-[#e0b54a]/60" />
               <span className="h-px w-9 bg-[#e0b54a]" />
             </span>
-            Your next chapter starts here
+            {t("form.eyebrow")}
           </p>
 
           {/* Each line is sized to its words: gradient text only paints
               inside its own box. */}
           <h2 className="mt-5 font-black uppercase leading-[0.92] tracking-[-0.01em]">
             <span className="block w-max bg-[linear-gradient(180deg,#ffffff,#cfcfcf)] bg-clip-text text-[clamp(2.6rem,8vw,4.5rem)] text-transparent">
-              Ready to
+              {t("form.h1")}
             </span>
 
             <span className="relative mt-1 block w-max pb-3">
               <span className="block bg-[linear-gradient(100deg,#fbe3a0_0%,#e8b54a_40%,#c98f28_75%,#f3c969_100%)] bg-clip-text pr-[0.14em] text-[clamp(3rem,10vw,5.5rem)] italic text-transparent">
-                Rise?
+                {t("form.h2")}
               </span>
 
               <svg
@@ -384,21 +386,20 @@ export default function EnquiryForm() {
           </h2>
 
           <p className="mt-8 max-w-md text-base leading-7 text-white/75">
-            Tell me where you are today and what you want to build. I&apos;ll
-            come back to you with the plan that fits.
+            {t("form.lede")}
           </p>
 
           <ul className="mt-8 space-y-4">
             <ContactRow
               icon="mail"
-              label="Email"
+              label={t("form.email")}
               value={db.settings.coachEmail}
               href={`mailto:${db.settings.coachEmail}`}
             />
 
             <ContactRow
               icon="phone"
-              label="Phone"
+              label={t("form.phone")}
               value={db.settings.coachPhone}
               href={coachDigits ? `tel:+${coachDigits}` : undefined}
             />
@@ -431,16 +432,15 @@ export default function EnquiryForm() {
                 </span>
 
                 <h3 className="mt-6 text-2xl font-black uppercase text-white">
-                  Request sent
+                  {t("form.sentTitle")}
                 </h3>
 
                 <p className="mt-3 text-sm leading-7 text-white/65">
-                  Your details reached me. I&apos;ll get back to you on the
-                  phone or email you gave to get you started.
+                  {t("form.sentText")}
                 </p>
 
                 <p className="mt-8 inline-block rounded-full bg-[linear-gradient(180deg,#f6d27a,#e0ac3c_55%,#b88420)] px-6 py-3 text-xs font-extrabold uppercase tracking-[0.12em] text-black">
-                  Thank you
+                  {t("form.thankYou")}
                 </p>
               </div>
             </div>
@@ -478,45 +478,58 @@ export default function EnquiryForm() {
                   <p className="text-xs leading-5 text-white/75">
                     {session ? (
                       <>
-                        Signed in as <strong className="text-white">{session.user.email}</strong>{" "}
-                        — this request will show in{" "}
+                        {t("form.signedIn.a")}{" "}
+                        <strong className="text-white">
+                          {session.user.email}
+                        </strong>{" "}
+                        {t("form.signedIn.b")}{" "}
                         <Link
                           href="/account"
                           className="font-bold text-[#e8c05a] underline-offset-4 hover:underline"
                         >
-                          your account
+                          {t("form.signedIn.link")}
                         </Link>
                         .
                       </>
                     ) : (
                       <>
-                        Have an account?{" "}
+                        {t("form.guest.a")}{" "}
                         <Link
                           href="/account"
                           className="font-bold text-[#e8c05a] underline-offset-4 hover:underline"
                         >
-                          Log in
+                          {t("form.guest.link")}
                         </Link>{" "}
-                        to track your booking and payment from any device.
+                        {t("form.guest.b")}
                       </>
                     )}
                   </p>
                 </div>
 
                 <div className="grid gap-5 sm:grid-cols-2">
-                  <Field id="name" label="Name" icon="user" error={errors.name}>
+                  <Field
+                    id="name"
+                    label={t("form.name")}
+                    icon="user"
+                    error={errors.name}
+                  >
                     <input
                       id="name"
                       autoComplete="name"
                       maxLength={100}
                       value={form.name}
                       onChange={(event) => set("name", event.target.value)}
-                      placeholder="Your full name"
+                      placeholder={t("form.namePh")}
                       className={fieldClass}
                     />
                   </Field>
 
-                  <Field id="phone" label="Phone" icon="phone" error={errors.phone}>
+                  <Field
+                    id="phone"
+                    label={t("form.phone")}
+                    icon="phone"
+                    error={errors.phone}
+                  >
                     <input
                       id="phone"
                       type="tel"
@@ -525,14 +538,19 @@ export default function EnquiryForm() {
                       maxLength={30}
                       value={form.phone}
                       onChange={(event) => set("phone", event.target.value)}
-                      placeholder="+91 00000 00000"
+                      placeholder={t("form.phonePh")}
                       className={fieldClass}
                     />
                   </Field>
                 </div>
 
                 <div className="mt-5">
-                  <Field id="email" label="Email" icon="mail" error={errors.email}>
+                  <Field
+                    id="email"
+                    label={t("form.email")}
+                    icon="mail"
+                    error={errors.email}
+                  >
                     <input
                       id="email"
                       type="email"
@@ -541,7 +559,7 @@ export default function EnquiryForm() {
                       maxLength={200}
                       value={form.email}
                       onChange={(event) => set("email", event.target.value)}
-                      placeholder="you@example.com"
+                      placeholder={t("form.emailPh")}
                       className={fieldClass}
                     />
                   </Field>
@@ -550,7 +568,7 @@ export default function EnquiryForm() {
                 <div className="mt-5 grid gap-5 sm:grid-cols-2">
                   <Field
                     id="program"
-                    label="Program"
+                    label={t("form.program")}
                     icon="dumbbell"
                     error={errors.programId}
                   >
@@ -560,7 +578,7 @@ export default function EnquiryForm() {
                       onChange={(event) => setProgram(event.target.value)}
                       className={selectClass}
                     >
-                      <option value="">Not sure yet</option>
+                      <option value="">{t("form.notSure")}</option>
 
                       {programs.map((program) => (
                         <option key={program.id} value={program.id}>
@@ -572,7 +590,7 @@ export default function EnquiryForm() {
                     <Chevron />
                   </Field>
 
-                  <Field id="goal" label="Main goal" icon="target">
+                  <Field id="goal" label={t("form.goalLabel")} icon="target">
                     <select
                       id="goal"
                       value={form.goal}
@@ -580,8 +598,8 @@ export default function EnquiryForm() {
                       className={selectClass}
                     >
                       {GOALS.map((goal) => (
-                        <option key={goal} value={goal}>
-                          {goal}
+                        <option key={goal.value} value={goal.value}>
+                          {t(goal.label)}
                         </option>
                       ))}
                     </select>
@@ -593,12 +611,15 @@ export default function EnquiryForm() {
                   <div className="mt-5">
                     <Field
                       id="slot"
-                      label="Preferred time"
+                      label={t("form.slot")}
                       icon="clock"
                       hint={
                         selected
-                          ? `Slots available for ${selected.name}.`
-                          : "Pick a program above to narrow these down."
+                          ? t("form.slotHint").replace(
+                              "{name}",
+                              selected.name,
+                            )
+                          : t("form.slotHintAny")
                       }
                     >
                       <select
@@ -607,7 +628,7 @@ export default function EnquiryForm() {
                         onChange={(event) => set("slot", event.target.value)}
                         className={selectClass}
                       >
-                        <option value="">No preference</option>
+                        <option value="">{t("form.noPreference")}</option>
 
                         {selected
                           ? selected.slots.map((slot) => (
@@ -631,14 +652,14 @@ export default function EnquiryForm() {
                 )}
 
                 <div className="mt-5">
-                  <Field id="message" label="Anything else" icon="chat" top>
+                  <Field id="message" label={t("form.message")} icon="chat" top>
                     <textarea
                       id="message"
                       rows={3}
                       maxLength={2000}
                       value={form.message}
                       onChange={(event) => set("message", event.target.value)}
-                      placeholder="Injuries, schedule, experience level…"
+                      placeholder={t("form.messagePh")}
                       className={`${fieldClass} resize-y`}
                     />
                   </Field>
@@ -653,21 +674,24 @@ export default function EnquiryForm() {
 
                     {submitError.offerDirectContact && coachDigits && (
                       <p className="mt-2 text-red-100/80">
-                        You can also reach me directly on{" "}
+                        {t("form.reach")}{" "}
                         <a
                           href={whatsappLink()}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="font-bold text-[#e8c05a] underline underline-offset-4"
                         >
-                          WhatsApp
+                          {t("form.whatsapp")}
                         </a>{" "}
-                        or{" "}
+                        {t("form.or")}{" "}
                         <a
                           href={`tel:+${coachDigits}`}
                           className="font-bold text-[#e8c05a] underline underline-offset-4"
                         >
-                          call {db.settings.coachPhone}
+                          {t("form.call").replace(
+                            "{phone}",
+                            db.settings.coachPhone,
+                          )}
                         </a>
                         .
                       </p>
@@ -685,7 +709,7 @@ export default function EnquiryForm() {
                   <Icon name="send" className="h-4 w-4" />
 
                   <span className="text-sm font-extrabold uppercase tracking-[0.14em]">
-                    {phase === "sending" ? "Sending…" : "Submit"}
+                    {phase === "sending" ? t("form.sending") : t("form.submit")}
                   </span>
 
                   <Icon
@@ -697,7 +721,7 @@ export default function EnquiryForm() {
                 {takesPayment(settings) && (
                   <p className="mt-4 flex items-center justify-center gap-2 text-xs text-white/55">
                     <Icon name="lock" className="h-3.5 w-3.5 text-[#e0b54a]" />
-                    Next, pay by UPI to confirm your spot.
+                    {t("form.payNote")}
                   </p>
                 )}
               </div>

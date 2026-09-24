@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { inputClass, labelClass } from "@/components/form-classes";
+import { useT } from "@/lib/i18n";
 import {
   cleanTxnId,
   isValidTxnId,
@@ -46,6 +47,7 @@ export default function PaymentStep({
   onRetrySettings: () => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const [view, setView] = useState<View>(fresh ? "none" : "loading");
   const [payment, setPayment] = useState<EnquiryPayment | null>(null);
   const [checking, setChecking] = useState(false);
@@ -101,7 +103,7 @@ export default function PaymentStep({
   if (view === "loading") {
     return (
       <div role="status" className={darkCard}>
-        <p className="text-sm text-white/60">Checking your booking…</p>
+        <p className="text-sm text-white/60">{t("pay.checking")}</p>
       </div>
     );
   }
@@ -110,11 +112,11 @@ export default function PaymentStep({
     return (
       <div role="alert" className={darkCard}>
         <h3 className="text-2xl font-black uppercase text-white">
-          Couldn&apos;t check your payment
+          {t("pay.errorTitle")}
         </h3>
 
         <p className="mt-3 text-sm leading-7 text-white/60">
-          Check your connection and try again.
+          {t("pay.errorText")}
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
@@ -126,11 +128,11 @@ export default function PaymentStep({
             }}
             className={goldPill}
           >
-            Try again
+            {t("pay.tryAgain")}
           </button>
 
           <button type="button" onClick={onClose} className={ghostPill}>
-            {inAccount ? "Close" : "Start over"}
+            {inAccount ? t("pay.close") : t("pay.startOver")}
           </button>
         </div>
       </div>
@@ -141,16 +143,15 @@ export default function PaymentStep({
     return (
       <div role="status" className={darkCard}>
         <h3 className="text-2xl font-black uppercase text-white">
-          This request is closed
+          {t("pay.closedTitle")}
         </h3>
 
         <p className="mt-3 text-sm leading-7 text-white/60">
-          It&apos;s no longer open for payment. Send a new request and
-          I&apos;ll pick it up from there.
+          {t("pay.closedText")}
         </p>
 
         <button type="button" onClick={onClose} className={`mt-8 ${goldPill}`}>
-          {inAccount ? "Close" : "Start a new request"}
+          {inAccount ? t("pay.close") : t("pay.newRequest")}
         </button>
       </div>
     );
@@ -167,18 +168,21 @@ export default function PaymentStep({
         </div>
 
         <h3 className="mt-5 text-2xl font-black uppercase text-white">
-          Payment under review
+          {t("pay.reviewTitle")}
         </h3>
 
         <p className="mt-3 text-sm leading-7 text-white/60">
-          Thanks — I&apos;m verifying your payment
-          {booking.programName ? ` for ${booking.programName}` : ""}. This
-          page updates on its own once it&apos;s confirmed.
+          {booking.programName
+            ? t("pay.review.withProgram").replace(
+                "{program}",
+                booking.programName,
+              )
+            : t("pay.review.plain")}
         </p>
 
         {payment?.txnId && (
           <p className="mt-6 text-xs text-white/45">
-            Transaction ID{" "}
+            {t("pay.txnId")}{" "}
             <span className="font-mono font-bold text-white/80">
               {payment.txnId}
             </span>
@@ -191,13 +195,11 @@ export default function PaymentStep({
           disabled={checking}
           className={`mt-8 ${goldPill}`}
         >
-          {checking ? "Checking…" : "Check status"}
+          {checking ? t("pay.checkingNow") : t("pay.checkStatus")}
         </button>
 
         <p className="mt-6 text-xs leading-6 text-white/35">
-          {inAccount
-            ? "You can close this — the status is always in your account, on any device."
-            : "You can close this page — the status is here whenever you come back on this device."}
+          {inAccount ? t("pay.keepAccount") : t("pay.keepDevice")}
         </p>
       </div>
     );
@@ -211,19 +213,21 @@ export default function PaymentStep({
         </div>
 
         <h3 className="mt-5 text-2xl font-black uppercase text-white">
-          Booking confirmed
+          {t("pay.confirmedTitle")}
         </h3>
 
         <p className="mt-3 text-sm leading-7 text-white/60">
-          Your payment is verified
-          {booking.programName ? ` and your spot in ${booking.programName} is confirmed` : ""}
-          . I&apos;ll reach out on the phone or email you gave to schedule
-          your first session.
+          {booking.programName
+            ? t("pay.confirmed.withProgram").replace(
+                "{program}",
+                booking.programName,
+              )
+            : t("pay.confirmed.plain")}
         </p>
 
         {payment?.txnId && (
           <p className="mt-6 text-xs text-white/45">
-            Transaction ID{" "}
+            {t("pay.txnId")}{" "}
             <span className="font-mono font-bold text-white/80">
               {payment.txnId}
             </span>
@@ -231,7 +235,7 @@ export default function PaymentStep({
         )}
 
         <button type="button" onClick={onClose} className={`mt-8 ${goldPill}`}>
-          Done
+          {t("pay.done")}
         </button>
       </div>
     );
@@ -274,6 +278,7 @@ function PayForm({
   onMissing: () => void;
   onLocked: () => void;
 }) {
+  const t = useT();
   const fileInput = useRef<HTMLInputElement>(null);
   const [screenshot, setScreenshot] = useState("");
   const [txnId, setTxnId] = useState("");
@@ -300,7 +305,7 @@ function PayForm({
       setErrors((prev) => ({
         ...prev,
         screenshot:
-          cause instanceof Error ? cause.message : "That image could not be read.",
+          cause instanceof Error ? cause.message : t("pay.err.image"),
       }));
     } finally {
       setPreparing(false);
@@ -326,11 +331,11 @@ function PayForm({
     const found: Record<string, string> = {};
 
     if (!screenshot) {
-      found.screenshot = "Add a screenshot of the successful payment.";
+      found.screenshot = t("pay.err.shot");
     }
 
     if (!isValidTxnId(txn)) {
-      found.txnId = "Enter the transaction ID — 6 to 40 letters or numbers.";
+      found.txnId = t("pay.err.txn");
     }
 
     setErrors(found);
@@ -364,9 +369,7 @@ function PayForm({
     // From the account page this only closes; the booking stays listed.
     if (booking.via === "account") return onClose();
 
-    const ok = window.confirm(
-      "Start a new request? This one stays with the coach, but you won't be able to pay for it from this page.",
-    );
+    const ok = window.confirm(t("pay.confirmStartOver"));
 
     if (ok) onClose();
   }
@@ -379,11 +382,11 @@ function PayForm({
         className="rounded-[2rem] border border-black/20 bg-[#d4af37]/70 p-7 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-9"
       >
         <p className="text-[10px] font-black uppercase tracking-[0.25em] text-black/55">
-          Step 2 of 2 · Payment
+          {t("pay.step")}
         </p>
 
         <h3 className="mt-3 text-3xl font-black uppercase leading-none tracking-tight text-black">
-          Complete your payment
+          {t("pay.title")}
         </h3>
 
         {rejected && (
@@ -391,17 +394,15 @@ function PayForm({
             role="alert"
             className="mt-5 rounded-2xl border border-red-900/30 bg-red-900/10 p-4 text-sm leading-6 text-black"
           >
-            <p className="font-bold">Your last payment couldn&apos;t be verified.</p>
-            <p className="mt-1 text-black/75">
-              Check the screenshot and transaction ID, then send them again.
-            </p>
+            <p className="font-bold">{t("pay.rejectedTitle")}</p>
+            <p className="mt-1 text-black/75">{t("pay.rejectedText")}</p>
           </div>
         )}
 
         <div className="mt-6 flex flex-wrap items-end justify-between gap-x-4 gap-y-1 rounded-2xl bg-black px-5 py-4">
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
-              {booking.programName || "Your program"}
+              {booking.programName || t("pay.yourProgram")}
             </p>
 
             <p className="mt-1 text-2xl font-black text-white">
@@ -410,28 +411,26 @@ function PayForm({
           </div>
 
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#d4af37]">
-            Amount to pay
+            {t("pay.amount")}
           </p>
         </div>
 
         {settings === "loading" ? (
-          <p className="mt-6 text-sm text-black/65">Loading payment details…</p>
+          <p className="mt-6 text-sm text-black/65">
+            {t("pay.loadingDetails")}
+          </p>
         ) : !details ? (
           <div className="mt-6 rounded-2xl border border-black/25 bg-black/[0.08] p-4 text-sm leading-6 text-black">
-            <p className="font-bold">
-              Online payment details aren&apos;t available right now.
-            </p>
+            <p className="font-bold">{t("pay.offlineTitle")}</p>
 
-            <p className="mt-1 text-black/75">
-              Your request is saved — I&apos;ll contact you with how to pay.
-            </p>
+            <p className="mt-1 text-black/75">{t("pay.offlineText")}</p>
 
             <button
               type="button"
               onClick={onRetrySettings}
               className="mt-3 font-black underline underline-offset-4"
             >
-              Try again
+              {t("pay.tryAgain")}
             </button>
           </div>
         ) : (
@@ -445,7 +444,7 @@ function PayForm({
                     <div className="relative h-full w-full">
                       <Image
                         src={details.qrImage}
-                        alt={`UPI QR code for ${details.upiId}`}
+                        alt={t("pay.qrAlt").replace("{upi}", details.upiId)}
                         fill
                         sizes="11rem"
                         unoptimized
@@ -455,13 +454,13 @@ function PayForm({
                   </div>
 
                   <p className="mt-2 text-center text-[11px] font-semibold text-black/60">
-                    Scan with any UPI app
+                    {t("pay.scan")}
                   </p>
                 </div>
               )}
 
               <div className="min-w-0">
-                <p className={labelClass}>UPI ID</p>
+                <p className={labelClass}>{t("pay.upiId")}</p>
 
                 <div className="flex items-center gap-2 rounded-xl border border-black/15 bg-white/70 py-2 pl-4 pr-2">
                   <span className="min-w-0 flex-1 break-all font-mono text-sm font-bold text-black">
@@ -473,13 +472,13 @@ function PayForm({
                     onClick={() => void copyUpiId(details.upiId)}
                     className="shrink-0 rounded-full bg-black px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white transition hover:bg-white hover:text-black"
                   >
-                    {copied ? "Copied" : "Copy"}
+                    {copied ? t("pay.copied") : t("pay.copy")}
                   </button>
                 </div>
 
                 {details.payeeName && (
                   <p className="mt-2 text-xs text-black/65">
-                    Paying <strong>{details.payeeName}</strong>
+                    {t("pay.paying")} <strong>{details.payeeName}</strong>
                   </p>
                 )}
 
@@ -492,19 +491,19 @@ function PayForm({
                   )}
                   className="mt-4 flex w-full items-center justify-center rounded-full border border-black px-5 py-3 text-xs font-black uppercase tracking-[0.12em] text-black transition hover:bg-black hover:text-white sm:hidden"
                 >
-                  Open UPI app
+                  {t("pay.openApp")}
                 </a>
 
                 <ol className="mt-4 list-decimal space-y-1 pl-4 text-xs leading-5 text-black/70">
-                  <li>Pay the amount above to this UPI ID.</li>
-                  <li>Screenshot the successful payment.</li>
-                  <li>Upload it below with the transaction ID.</li>
+                  <li>{t("pay.step1")}</li>
+                  <li>{t("pay.step2")}</li>
+                  <li>{t("pay.step3")}</li>
                 </ol>
               </div>
             </div>
 
             <div className="mt-7 border-t border-black/15 pt-6">
-              <p className={labelClass}>Payment screenshot</p>
+              <p className={labelClass}>{t("pay.shotLabel")}</p>
 
               <input
                 ref={fileInput}
@@ -523,7 +522,7 @@ function PayForm({
                   <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-lg bg-black/10">
                     <Image
                       src={screenshot}
-                      alt="Your payment screenshot"
+                      alt={t("pay.shotAlt")}
                       fill
                       sizes="3.5rem"
                       unoptimized
@@ -532,7 +531,7 @@ function PayForm({
                   </div>
 
                   <p className="flex-1 text-xs font-semibold text-black/70">
-                    Screenshot added.
+                    {t("pay.shotAdded")}
                   </p>
 
                   <button
@@ -541,7 +540,7 @@ function PayForm({
                     disabled={preparing}
                     className="text-xs font-black text-black underline underline-offset-4"
                   >
-                    {preparing ? "Preparing…" : "Change"}
+                    {preparing ? t("pay.preparing") : t("pay.change")}
                   </button>
                 </div>
               ) : (
@@ -552,10 +551,12 @@ function PayForm({
                   className="flex w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-black/25 bg-white/40 px-4 py-6 text-center transition hover:border-black hover:bg-white/70 disabled:cursor-wait"
                 >
                   <span className="text-sm font-black text-black">
-                    {preparing ? "Preparing…" : "Upload screenshot"}
+                    {preparing ? t("pay.preparing") : t("pay.upload")}
                   </span>
 
-                  <span className="text-xs text-black/55">JPG, PNG or WebP</span>
+                  <span className="text-xs text-black/55">
+                    {t("pay.fileTypes")}
+                  </span>
                 </button>
               )}
 
@@ -568,7 +569,7 @@ function PayForm({
 
             <div className="mt-5">
               <label htmlFor="txnId" className={labelClass}>
-                Transaction ID (UTR)
+                {t("pay.txnLabel")}
               </label>
 
               <input
@@ -579,12 +580,12 @@ function PayForm({
                 maxLength={60}
                 value={txnId}
                 onChange={(event) => setTxnId(event.target.value)}
-                placeholder="e.g. 412345678901"
+                placeholder={t("pay.txnPh")}
                 className={inputClass}
               />
 
               <p className="mt-2 text-xs text-black/60">
-                The 12-digit UPI reference number shown in your payment app.
+                {t("pay.txnHint")}
               </p>
 
               {errors.txnId && (
@@ -608,7 +609,7 @@ function PayForm({
               disabled={sending || preparing}
               className="mt-7 w-full rounded-full bg-black px-7 py-4 text-sm font-black uppercase tracking-wider text-white transition hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-60 disabled:hover:bg-black disabled:hover:text-white"
             >
-              {sending ? "Sending…" : "Complete Payment"}
+              {sending ? t("form.sending") : t("pay.complete")}
             </button>
           </>
         )}
@@ -619,7 +620,7 @@ function PayForm({
         onClick={startOver}
         className="mt-4 block w-full text-center text-xs font-bold text-black/60 underline underline-offset-4 transition hover:text-black"
       >
-        {booking.via === "account" ? "Close" : "Cancel and start over"}
+        {booking.via === "account" ? t("pay.close") : t("pay.cancel")}
       </button>
     </div>
   );

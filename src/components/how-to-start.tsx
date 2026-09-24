@@ -4,6 +4,7 @@ import { GoldCardGlow, goldCardClass } from "@/components/gold-card";
 import Icon, { type IconName } from "@/components/icons";
 import Reveal from "@/components/motion/reveal";
 import SectionPhoto from "@/components/section-photo";
+import { useT, type StringKey } from "@/lib/i18n";
 import { DEFAULT_COACH_PHOTO, coachPhotoAt } from "@/lib/store";
 import { useDB } from "@/lib/use-store";
 
@@ -11,10 +12,10 @@ const STEPS = [
   {
     number: "01",
     icon: "clipboard",
-    title: "Send your",
-    accent: "details",
-    text: "Fill in the form with your goals, your schedule, and where you are training from.",
-    cta: "It takes 2 minutes",
+    title: "start.s1.title",
+    accent: "start.s1.accent",
+    text: "start.s1.text",
+    cta: "start.s1.cta",
     /** Each card crops the one photo differently, so the three don't repeat.
      *  `object-position` alone can't: cover leaves barely any crop room in a
      *  card this shape, so the zoom is what actually moves the frame. */
@@ -23,28 +24,28 @@ const STEPS = [
   {
     number: "02",
     icon: "chat",
-    title: "Talk it",
-    accent: "through",
-    text: "We go over your experience, any injuries, and which program actually fits you.",
-    cta: "Personal & direct",
+    title: "start.s2.title",
+    accent: "start.s2.accent",
+    text: "start.s2.text",
+    cta: "start.s2.cta",
     crop: "scale-100 origin-center",
   },
   {
     number: "03",
     icon: "dumbbell",
-    title: "Start",
-    accent: "training",
-    text: "Your program begins, and the coaching and accountability start from day one.",
-    cta: "Let's go",
+    title: "start.s3.title",
+    accent: "start.s3.accent",
+    text: "start.s3.text",
+    cta: "start.s3.cta",
     crop: "scale-[1.32] origin-[38%_66%]",
   },
 ] as const satisfies readonly {
   number: string;
   icon: IconName;
-  title: string;
-  accent: string;
-  text: string;
-  cta: string;
+  title: StringKey;
+  accent: StringKey;
+  text: StringKey;
+  cta: StringKey;
   crop: string;
 }[];
 
@@ -59,6 +60,7 @@ const HEADER_PHOTO_MASK =
   "radial-gradient(ellipse 62% 44% at 52% 40%, #000 34%, transparent 100%)";
 
 export default function HowToStart() {
+  const t = useT();
   const { settings } = useDB();
   const photo = coachPhotoAt(settings, 0);
 
@@ -93,9 +95,9 @@ export default function HowToStart() {
 
         {/* "Stronger Together", brushed beside the athlete. */}
         <p className="absolute bottom-[22%] right-2 hidden -rotate-[14deg] bg-[linear-gradient(90deg,#c98f28,#f3c969_55%,#fbe3a0)] bg-clip-text pr-3 text-right font-[family-name:var(--font-script)] text-[2.75rem] leading-[0.95] text-transparent xl:block">
-          Stronger
+          {t("start.script")}
           <br />
-          <span className="mr-6">Together</span>
+          <span className="mr-6">{t("start.together")}</span>
         </p>
       </div>
 
@@ -103,7 +105,7 @@ export default function HowToStart() {
         <Reveal>
           <p className="flex items-center gap-4 text-xs font-bold uppercase tracking-[0.32em] text-[#f5c518]">
             <span aria-hidden className="h-0.5 w-10 shrink-0 bg-[#f5c518]" />
-            How To Start
+            {t("start.eyebrow")}
           </p>
 
           <div className="mt-6 flex flex-col gap-7 sm:flex-row sm:items-end sm:gap-10">
@@ -111,12 +113,12 @@ export default function HowToStart() {
                 is sized to the word rather than to the column. */}
             <h2 className="text-[clamp(2.5rem,8.5vw,5rem)] font-black uppercase leading-[0.9] tracking-[-0.02em]">
               <span className="block w-max bg-[linear-gradient(180deg,#ffffff_35%,#b9b9b9)] bg-clip-text text-transparent">
-                Three steps.
+                {t("start.h1")}
               </span>
 
               <span className="relative block w-max italic">
                 <span className="bg-[linear-gradient(100deg,#e2a900,#f5c518_38%,#fff3b0_52%,#f5c518_64%,#c98f28)] bg-clip-text pr-[0.12em] text-transparent">
-                  That&apos;s it.
+                  {t("start.h2")}
                 </span>
 
                 <span
@@ -127,11 +129,11 @@ export default function HowToStart() {
             </h2>
 
             <p className="text-[0.7rem] font-bold uppercase leading-[2.4] tracking-[0.24em] text-white/70 sm:border-l sm:border-white/15 sm:pb-2 sm:pl-8 sm:text-xs">
-              Simple steps.
+              {t("start.note1")}
               <br />
-              Real progress.
+              {t("start.note2")}
               <br />
-              <span className="text-[#f5c518]">A stronger you.</span>
+              <span className="text-[#f5c518]">{t("start.note3")}</span>
             </p>
           </div>
         </Reveal>
@@ -197,8 +199,8 @@ export default function HowToStart() {
                   </div>
 
                   <h3 className="mt-8 text-2xl font-black uppercase leading-[0.95] tracking-tight">
-                    <span className="block text-white">{step.title}</span>
-                    <span className="block text-[#f5c518]">{step.accent}</span>
+                    <span className="block text-white">{t(step.title)}</span>
+                    <span className="block text-[#f5c518]">{t(step.accent)}</span>
                   </h3>
 
                   <span
@@ -207,7 +209,7 @@ export default function HowToStart() {
                   />
 
                   <p className="mt-5 max-w-[15rem] text-sm leading-7 text-white/65">
-                    {step.text}
+                    {t(step.text)}
                   </p>
 
                   <span className="mt-auto flex items-center gap-3 pt-8">
@@ -219,7 +221,7 @@ export default function HowToStart() {
                     </span>
 
                     <span className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[#f5c518]">
-                      {step.cta}
+                      {t(step.cta)}
                     </span>
                   </span>
                 </div>

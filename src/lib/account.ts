@@ -42,9 +42,19 @@ const PASSWORD_MAX = 200;
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** The server answers in English; the page looks the code up in Hindi. */
+export type AuthErrorCode =
+  | "nameMissing"
+  | "nameLong"
+  | "phone"
+  | "email"
+  | "passwordShort"
+  | "passwordLong"
+  | "passwordMissing";
+
 type Parsed<T> =
   | { ok: true; value: T }
-  | { ok: false; field: string; error: string };
+  | { ok: false; field: string; code: AuthErrorCode; error: string };
 
 function asObject(input: unknown): Record<string, unknown> {
   return input && typeof input === "object" && !Array.isArray(input)
@@ -61,14 +71,21 @@ export function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
 }
 
-export function passwordProblem(password: string) {
+export function passwordProblem(
+  password: string,
+): { code: AuthErrorCode; error: string } | null {
   if (password.length < PASSWORD_MIN) {
-    return `Use at least ${PASSWORD_MIN} characters.`;
+    return {
+      code: "passwordShort",
+      error: `Use at least ${PASSWORD_MIN} characters.`,
+    };
   }
 
-  if (password.length > PASSWORD_MAX) return "That password is too long.";
+  if (password.length > PASSWORD_MAX) {
+    return { code: "passwordLong", error: "That password is too long." };
+  }
 
-  return "";
+  return null;
 }
 
 export function parseRegistration(input: unknown): Parsed<Registration> {
@@ -81,11 +98,21 @@ export function parseRegistration(input: unknown): Parsed<Registration> {
   const password = readString(body, "password");
 
   if (!name) {
-    return { ok: false, field: "name", error: "Please enter your name." };
+    return {
+      ok: false,
+      field: "name",
+      code: "nameMissing",
+      error: "Please enter your name.",
+    };
   }
 
   if (name.length > 100) {
-    return { ok: false, field: "name", error: "That name is too long." };
+    return {
+      ok: false,
+      field: "name",
+      code: "nameLong",
+      error: "That name is too long.",
+    };
   }
 
   const digits = phone.replace(/\D/g, "").length;
@@ -94,17 +121,30 @@ export function parseRegistration(input: unknown): Parsed<Registration> {
     return {
       ok: false,
       field: "phone",
+      code: "phone",
       error: "Please enter a valid phone number.",
     };
   }
 
   if (email.length > 200 || !EMAIL.test(email)) {
-    return { ok: false, field: "email", error: "Please enter a valid email." };
+    return {
+      ok: false,
+      field: "email",
+      code: "email",
+      error: "Please enter a valid email.",
+    };
   }
 
   const problem = passwordProblem(password);
 
-  if (problem) return { ok: false, field: "password", error: problem };
+  if (problem) {
+    return {
+      ok: false,
+      field: "password",
+      code: problem.code,
+      error: problem.error,
+    };
+  }
 
   return { ok: true, value: { name, email, phone, password } };
 }
@@ -116,11 +156,21 @@ export function parseCredentials(input: unknown): Parsed<Credentials> {
   const password = readString(body, "password");
 
   if (email.length > 200 || !EMAIL.test(email)) {
-    return { ok: false, field: "email", error: "Please enter a valid email." };
+    return {
+      ok: false,
+      field: "email",
+      code: "email",
+      error: "Please enter a valid email.",
+    };
   }
 
   if (!password || password.length > PASSWORD_MAX) {
-    return { ok: false, field: "password", error: "Enter your password." };
+    return {
+      ok: false,
+      field: "password",
+      code: "passwordMissing",
+      error: "Enter your password.",
+    };
   }
 
   return { ok: true, value: { email, password } };

@@ -5,6 +5,7 @@ import Hexagon from "@/components/hexagon";
 import Icon, { type IconName } from "@/components/icons";
 import Reveal from "@/components/motion/reveal";
 import SectionPhoto from "@/components/section-photo";
+import { useT, type StringKey } from "@/lib/i18n";
 import { DEFAULT_COACH_PHOTO, coachPhotoAt } from "@/lib/store";
 import { byNumber } from "@/lib/order";
 import { useDB } from "@/lib/use-store";
@@ -18,29 +19,29 @@ import { useDB } from "@/lib/use-store";
  */
 const STEP_ART: Record<
   string,
-  { icon: IconName; cta: string; photo: string; crop: string }
+  { icon: IconName; cta: StringKey; photo: string; crop: string }
 > = {
   assess: {
     icon: "target",
-    cta: "It starts with you",
+    cta: "method.cta.assess",
     photo: "/method-01.jpg",
     crop: "scale-[1.5] origin-[54%_10%]",
   },
   train: {
     icon: "dumbbell",
-    cta: "Smarter training",
+    cta: "method.cta.train",
     photo: "/method-02.jpg",
     crop: "scale-100 origin-center",
   },
   progress: {
     icon: "trend",
-    cta: "Small steps. Big results.",
+    cta: "method.cta.progress",
     photo: "/method-03.jpg",
     crop: "scale-[1.35] origin-[42%_62%]",
   },
   transform: {
     icon: "cycle",
-    cta: "A stronger you",
+    cta: "method.cta.transform",
     photo: "/method-04.jpg",
     crop: "scale-[1.2] origin-[62%_30%]",
   },
@@ -49,7 +50,7 @@ const STEP_ART: Record<
 /** For a step the admin has added, which has no artwork of its own. */
 const DEFAULT_ART = {
   icon: "bolt" as IconName,
-  cta: "Start training",
+  cta: "method.cta.default" as StringKey,
   photo: "",
   crop: "scale-[1.15] origin-center",
 };
@@ -67,6 +68,7 @@ const ATHLETE_MASK =
   "radial-gradient(ellipse 58% 44% at 50% 40%, #000 34%, transparent 100%)";
 
 export default function Method() {
+  const t = useT();
   const { method: savedMethod, settings } = useDB();
   const method = byNumber(savedMethod);
   const tagline = settings.tagline.trim() || "Rise. Grind. Shine.";
@@ -110,19 +112,19 @@ export default function Method() {
             <div>
               <p className="flex items-center gap-4 text-xs font-bold uppercase tracking-[0.32em] text-[#f5c518]">
                 <span aria-hidden className="h-0.5 w-10 shrink-0 bg-[#f5c518]" />
-                The Mugabe Method
+                {t("method.eyebrow")}
               </p>
 
               {/* Gradient text is only painted inside its own box, so each
                   line is sized to the word rather than to the column. */}
               <h2 className="mt-6 font-black uppercase leading-[0.9] tracking-[-0.02em]">
                 <span className="block w-max bg-[linear-gradient(180deg,#ffffff_35%,#b9b9b9)] bg-clip-text text-[clamp(2.1rem,7vw,4rem)] italic text-transparent">
-                  Don&apos;t just
+                  {t("method.h1")}
                 </span>
 
                 <span className="relative block w-max">
                   <span className="bg-[linear-gradient(100deg,#e2a900,#f5c518_36%,#fff3b0_52%,#f5c518_66%,#c98f28)] bg-clip-text pr-[0.12em] text-[clamp(2.7rem,9.5vw,5.5rem)] italic text-transparent">
-                    Work out.
+                    {t("method.h2")}
                   </span>
 
                   <span
@@ -132,7 +134,7 @@ export default function Method() {
                 </span>
 
                 <span className="mt-4 block w-max bg-[linear-gradient(180deg,#ffffff_35%,#b9b9b9)] bg-clip-text text-[clamp(1.5rem,4.6vw,2.6rem)] text-transparent">
-                  Train with purpose.
+                  {t("method.h3")}
                 </span>
               </h2>
             </div>
@@ -148,9 +150,9 @@ export default function Method() {
               </p>
 
               <p className="mt-6 -rotate-[10deg] bg-[linear-gradient(90deg,#c98f28,#f3c969_55%,#fbe3a0)] bg-clip-text pr-3 font-[family-name:var(--font-script)] text-[2.4rem] leading-[0.95] text-transparent">
-                Stronger
+                {t("method.script")}
                 <br />
-                <span className="mr-6">Together</span>
+                <span className="mr-6">{t("method.together")}</span>
               </p>
             </div>
           </div>
@@ -247,7 +249,7 @@ export default function Method() {
                       </span>
 
                       <span className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[#f5c518]">
-                        {art.cta}
+                        {t(art.cta)}
                       </span>
                     </span>
                   </div>

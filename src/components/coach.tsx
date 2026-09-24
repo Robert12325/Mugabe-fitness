@@ -9,6 +9,7 @@ import Reveal from "@/components/motion/reveal";
 import VideoFrame from "@/components/video-frame";
 import { parseVideoUrl, type CoachMedia } from "@/lib/coach-media";
 import { fetchCoachMedia } from "@/lib/coach-media-client";
+import { useT, type StringKey } from "@/lib/i18n";
 import { coachPhotoSrc } from "@/lib/store";
 import { useDB } from "@/lib/use-store";
 
@@ -16,29 +17,30 @@ const PILLARS = [
   {
     number: "01",
     icon: "clipboard",
-    title: "Coaching, not workouts",
-    text: "Every session has a reason behind it. You always know what you are doing and why.",
+    title: "coach.p1.title",
+    text: "coach.p1.text",
   },
   {
     number: "02",
     icon: "shield",
-    title: "Standards over shortcuts",
-    text: "Technique first, load second. Progress that holds up is progress worth building.",
+    title: "coach.p2.title",
+    text: "coach.p2.text",
   },
   {
     number: "03",
     icon: "users",
-    title: "In it with you",
-    text: "The same discipline asked of you is the standard the coaching is held to.",
+    title: "coach.p3.title",
+    text: "coach.p3.text",
   },
 ] as const satisfies readonly {
   number: string;
   icon: IconName;
-  title: string;
-  text: string;
+  title: StringKey;
+  text: StringKey;
 }[];
 
 export default function Coach() {
+  const t = useT();
   const { settings } = useDB();
   const photo = coachPhotoSrc(settings);
 
@@ -88,7 +90,7 @@ export default function Coach() {
           <Reveal>
             <p className="flex items-center gap-4 text-xs font-bold uppercase tracking-[0.32em] text-[#f5c518]">
               <span aria-hidden className="h-0.5 w-10 shrink-0 bg-[#f5c518]" />
-              Your Coach
+              {t("coach.eyebrow")}
             </p>
 
             {/* Gradient text is only painted inside its own box, so each
@@ -98,12 +100,12 @@ export default function Coach() {
                 whole grid track out with it. */}
             <h2 className="mt-6 text-[clamp(1.85rem,5.6vw,3.5rem)] font-black uppercase leading-[0.92] tracking-[-0.02em]">
               <span className="block w-max max-w-full bg-[linear-gradient(180deg,#ffffff_35%,#b9b9b9)] bg-clip-text text-transparent">
-                Built by someone
+                {t("coach.h1")}
               </span>
 
               <span className="relative block w-max max-w-full">
                 <span className="bg-[linear-gradient(100deg,#e2a900,#f5c518_36%,#fff3b0_52%,#f5c518_66%,#c98f28)] bg-clip-text pr-[0.12em] italic text-transparent">
-                  Who lives the work.
+                  {t("coach.h2")}
                 </span>
 
                 <span
@@ -114,9 +116,7 @@ export default function Coach() {
             </h2>
 
             <p className="mt-8 max-w-xl text-sm leading-7 text-white/60 sm:text-base sm:leading-8">
-              Mugabe Fitness combines strength training, discipline, coaching,
-              and a commitment to continuous improvement. The goal isn&apos;t
-              simply to exercise. It&apos;s to build a stronger version of you.
+              {t("coach.body")}
             </p>
 
             <a
@@ -130,7 +130,7 @@ export default function Coach() {
                 />
               </span>
 
-              Work with me
+              {t("coach.cta")}
             </a>
           </Reveal>
 
@@ -143,7 +143,7 @@ export default function Coach() {
               {showVideo && video ? (
                 <VideoFrame
                   source={video}
-                  title="Meet your coach at Mugabe Fitness"
+                  title={t("coach.videoTitle")}
                   poster={showPhoto ? photo : undefined}
                   onError={() => setFailedVideo(videoKey)}
                 />
@@ -151,7 +151,7 @@ export default function Coach() {
                 <>
                   <Image
                     src={photo}
-                    alt="The coach mid-workout at Mugabe Fitness"
+                    alt={t("coach.photoAlt")}
                     fill
                     // Roughly half the 80rem container from lg, full width
                     // below.
@@ -173,9 +173,9 @@ export default function Coach() {
 
                   {/* "Stronger Together", brushed across the foot. */}
                   <p className="absolute bottom-[6%] left-[7%] -rotate-[10deg] bg-[linear-gradient(90deg,#c98f28,#f3c969_55%,#fbe3a0)] bg-clip-text pr-3 font-[family-name:var(--font-script)] text-[2.2rem] leading-[0.95] text-transparent sm:text-[2.8rem]">
-                    Stronger
+                    {t("coach.script")}
                     <br />
-                    <span className="ml-8">Together</span>
+                    <span className="ml-8">{t("coach.together")}</span>
                   </p>
                 </>
               ) : (
@@ -184,11 +184,11 @@ export default function Coach() {
 
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
                     <span className="text-[10px] font-black uppercase tracking-[0.35em] text-white/25">
-                      Coach photo
+                      {t("coach.photoPlaceholder")}
                     </span>
 
                     <span className="text-[11px] leading-6 text-white/20">
-                      Add one from Admin → Settings
+                      {t("coach.photoHint")}
                     </span>
                   </div>
                 </div>
@@ -219,7 +219,7 @@ export default function Coach() {
                   </div>
 
                   <h3 className="mt-7 text-lg font-black uppercase leading-[1.1] tracking-tight text-white">
-                    {pillar.title}
+                    {t(pillar.title)}
                   </h3>
 
                   <span
@@ -228,7 +228,7 @@ export default function Coach() {
                   />
 
                   <p className="mt-5 text-sm leading-7 text-white/60">
-                    {pillar.text}
+                    {t(pillar.text)}
                   </p>
                 </div>
               </article>

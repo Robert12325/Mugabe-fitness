@@ -308,3 +308,25 @@ html[lang="hi"] h3 {
   letter-spacing: normal;
   line-height: 1.25;
 }
+
+/* Devanagari has no capitals and no true italic, and wide tracking pulls a
+   matra away from the letter it belongs to. These undo the Latin styling
+   wherever it is applied, not only on headings. The attribute selectors
+   outrank the utility classes they are overriding. */
+html[lang="hi"] [class*="tracking-"] {
+  letter-spacing: normal;
+}
+
+html[lang="hi"] [class*="uppercase"] {
+  text-transform: none;
+}
+
+html[lang="hi"] [class*="italic"] {
+  font-style: normal;
+}
+
+/* Taller glyphs need the room back on the lines squeezed for Latin. */
+html[lang="hi"] [class*="leading-["],
+html[lang="hi"] [class*="leading-none"] {
+  line-height: 1.3;
+}
