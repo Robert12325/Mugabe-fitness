@@ -9,6 +9,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import ProgressPanel from "@/components/account/progress-panel";
 import AthletePhoto from "@/components/athlete-photo";
 import BrandMark from "@/components/brand-mark";
 import FeatureBadges from "@/components/feature-badges";
@@ -703,6 +704,13 @@ function Dashboard({ session }: { session: Session }) {
 
   const firstName = user.name.split(" ")[0] || t("dash.there");
 
+  // A verified payment is what makes someone a client, and it is the coach
+  // who marks it verified — so this is his decision, read back.
+  const isClient =
+    load !== "loading" &&
+    load.state === "ok" &&
+    load.bookings.some((booking) => booking.payment.status === "verified");
+
   return (
     <div className="space-y-10">
       <div className="flex flex-wrap items-end justify-between gap-6">
@@ -748,6 +756,10 @@ function Dashboard({ session }: { session: Session }) {
           ))}
         </dl>
       </section>
+
+      {load !== "loading" && load.state === "ok" && (
+        <ProgressPanel token={token} unlocked={isClient} />
+      )}
 
       <section>
         <div className="flex flex-wrap items-end justify-between gap-4">
