@@ -3,20 +3,23 @@
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import BrandMark from "@/components/brand-mark";
+import LanguageSwitch from "@/components/language-switch";
 import {
   getSession,
   getSessionOnServer,
   subscribeSession,
 } from "@/lib/account-client";
+import { useT, type StringKey } from "@/lib/i18n";
 
-const links = [
-  { label: "Home", id: "home" },
-  { label: "Programs", id: "programs" },
-  { label: "Method", id: "method" },
-  { label: "Coach", id: "coach" },
+const links: { key: StringKey; id: string }[] = [
+  { key: "nav.home", id: "home" },
+  { key: "nav.programs", id: "programs" },
+  { key: "nav.method", id: "method" },
+  { key: "nav.coach", id: "coach" },
 ];
 
 export default function Navbar() {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState("home");
 
@@ -27,8 +30,8 @@ export default function Navbar() {
   );
 
   const accountLabel = session
-    ? session.user.name.split(" ")[0] || "Account"
-    : "Log in";
+    ? session.user.name.split(" ")[0] || t("nav.account")
+    : t("nav.login");
 
   // Underline the link for whichever section crosses the middle of the
   // screen. Sections without a link leave the last one underlined.
@@ -90,7 +93,7 @@ export default function Navbar() {
                   current ? "text-white" : "text-white/75 hover:text-white"
                 }`}
               >
-                {link.label}
+                {t(link.key)}
 
                 <span
                   aria-hidden
@@ -104,6 +107,8 @@ export default function Navbar() {
         </div>
 
         <div className="hidden items-center gap-5 lg:flex">
+          <LanguageSwitch />
+
           <Link
             href="/account"
             className="max-w-[9rem] truncate text-[15px] font-medium text-white/75 transition hover:text-white"
@@ -115,7 +120,7 @@ export default function Navbar() {
             href="#programs"
             className="group inline-flex items-center gap-2.5 rounded-full bg-[#f5c518] px-7 py-3.5 text-[15px] font-bold text-black transition hover:bg-[#ffd84a]"
           >
-            Start Training
+            {t("nav.start")}
             <ArrowIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </a>
         </div>
@@ -123,7 +128,7 @@ export default function Navbar() {
         {/* Mobile button */}
         <button
           type="button"
-          aria-label={open ? "Close navigation" : "Open navigation"}
+          aria-label={open ? t("nav.close") : t("nav.open")}
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
           className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white transition hover:border-[#f5c518] lg:hidden"
@@ -149,7 +154,7 @@ export default function Navbar() {
                 active === link.id ? "text-[#f5c518]" : "text-white/75 hover:text-white"
               }`}
             >
-              {link.label}
+              {t(link.key)}
               {active === link.id && (
                 <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[#f5c518]" />
               )}
@@ -161,15 +166,23 @@ export default function Navbar() {
             onClick={closeMenu}
             className="border-b border-white/10 py-4 text-sm font-semibold text-white/75 transition hover:text-white"
           >
-            {session ? "My account" : "Log in"}
+            {session ? t("nav.account") : t("nav.login")}
           </Link>
+
+          <div className="flex items-center justify-between border-b border-white/10 py-4">
+            <span className="text-sm font-semibold text-white/75">
+              {t("lang.switch")}
+            </span>
+
+            <LanguageSwitch />
+          </div>
 
           <a
             href="#programs"
             onClick={closeMenu}
             className="mt-5 inline-flex items-center justify-center gap-2.5 rounded-full bg-[#f5c518] px-5 py-4 text-sm font-bold text-black"
           >
-            Start Training
+            {t("nav.start")}
             <ArrowIcon className="h-4 w-4" />
           </a>
         </div>

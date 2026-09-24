@@ -4,22 +4,24 @@ import Link from "next/link";
 import BrandMark from "@/components/brand-mark";
 import Icon, { type IconName } from "@/components/icons";
 import Reveal from "@/components/motion/reveal";
+import { useT, type StringKey } from "@/lib/i18n";
 import { useDB } from "@/lib/use-store";
 
-const EXPLORE = [
-  { label: "Home", href: "#home" },
-  { label: "Programs", href: "#programs" },
-  { label: "The Method", href: "#method" },
-  { label: "Your Coach", href: "#coach" },
+const EXPLORE: { key: StringKey; href: string }[] = [
+  { key: "nav.home", href: "#home" },
+  { key: "nav.programs", href: "#programs" },
+  { key: "footer.theMethod", href: "#method" },
+  { key: "footer.yourCoach", href: "#coach" },
 ];
 
-const START = [
-  { label: "How to start", href: "#start" },
-  { label: "Book a program", href: "#contact" },
-  { label: "My account", href: "/account" },
+const START: { key: StringKey; href: string }[] = [
+  { key: "footer.howToStart", href: "#start" },
+  { key: "footer.book", href: "#contact" },
+  { key: "nav.account", href: "/account" },
 ];
 
 export default function SiteFooter() {
+  const t = useT();
   const { settings } = useDB();
 
   // WhatsApp and tel: both want digits only, no spaces or plus sign.
@@ -44,7 +46,7 @@ export default function SiteFooter() {
           },
           {
             icon: "chat" as const,
-            label: "Message on WhatsApp",
+            label: t("footer.whatsapp"),
             href: `https://wa.me/${digits}`,
           },
         ]
@@ -97,15 +99,14 @@ export default function SiteFooter() {
               )}
 
               <p className="mt-5 max-w-xs text-sm leading-7 text-white/60">
-                Personal coaching built to help you train with purpose and
-                become the strongest version of yourself.
+                {t("footer.blurb")}
               </p>
 
               <a
                 href="#contact"
                 className="group mt-7 inline-flex items-center gap-2.5 rounded-full bg-[#f5c518] px-6 py-3 text-sm font-bold text-black transition hover:bg-[#ffd84a]"
               >
-                Start Training
+                {t("nav.start")}
                 <Icon
                   name="arrowRight"
                   className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
@@ -114,25 +115,25 @@ export default function SiteFooter() {
             </div>
 
             {/* Links */}
-            <FooterColumn title="Explore">
+            <FooterColumn title={t("footer.explore")}>
               {EXPLORE.map((link) => (
-                <FooterLink key={link.label} href={link.href}>
-                  {link.label}
+                <FooterLink key={link.key} href={link.href}>
+                  {t(link.key)}
                 </FooterLink>
               ))}
             </FooterColumn>
 
-            <FooterColumn title="Get started">
+            <FooterColumn title={t("footer.getStarted")}>
               {START.map((link) => (
-                <FooterLink key={link.label} href={link.href}>
-                  {link.label}
+                <FooterLink key={link.key} href={link.href}>
+                  {t(link.key)}
                 </FooterLink>
               ))}
             </FooterColumn>
 
             {/* Contact */}
             <div>
-              <ColumnTitle>Reach me</ColumnTitle>
+              <ColumnTitle>{t("footer.reach")}</ColumnTitle>
 
               <ul className="mt-5 space-y-4">
                 {reach.map((item) => (
@@ -168,19 +169,19 @@ export default function SiteFooter() {
         <div className="flex flex-col-reverse items-center gap-4 pt-6 text-center sm:flex-row sm:justify-between sm:text-left">
           <p className="text-xs text-white/55">
             © {new Date().getFullYear()} {settings.brandName}{" "}
-            {settings.brandSuffix}. All rights reserved.
+            {settings.brandSuffix}. {t("footer.rights")}
           </p>
 
           <div className="flex items-center gap-6">
             <span className="text-[0.65rem] font-bold uppercase tracking-[0.24em] text-white/55">
-              Rise · Grind · Shine
+              {t("footer.motto")}
             </span>
 
             <Link
               href="/admin"
               className="text-xs font-semibold text-white/55 transition hover:text-[#f5c518]"
             >
-              Admin
+              {t("footer.admin")}
             </Link>
           </div>
         </div>

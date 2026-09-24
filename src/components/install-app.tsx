@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import Icon from "@/components/icons";
+import { useT } from "@/lib/i18n";
 
 /**
  * Offers to put the site on the phone home screen, where it opens full
@@ -110,6 +111,7 @@ async function install(prompt: InstallEvent) {
 }
 
 export default function InstallApp() {
+  const t = useT();
   const current = useSyncExternalStore(
     subscribe,
     () => offer,
@@ -127,18 +129,11 @@ export default function InstallApp() {
 
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-white">
-            Add Mugabe Fitness to your home screen
+            {t("install.title")}
           </p>
 
           <p className="mt-1 text-xs leading-5 text-white/60">
-            {current.kind === "ios" ? (
-              <>
-                Tap Share, then{" "}
-                <strong className="text-white/80">Add to Home Screen</strong>.
-              </>
-            ) : (
-              "Opens full screen, like an app."
-            )}
+            {current.kind === "ios" ? t("install.ios") : t("install.android")}
           </p>
         </div>
 
@@ -148,14 +143,14 @@ export default function InstallApp() {
             onClick={() => void install(current.prompt)}
             className="shrink-0 rounded-full bg-[#f5c518] px-5 py-2.5 text-xs font-bold text-black transition hover:bg-[#ffd84a]"
           >
-            Install
+            {t("install.action")}
           </button>
         )}
 
         <button
           type="button"
           onClick={dismiss}
-          aria-label="Not now"
+          aria-label={t("install.dismiss")}
           className="shrink-0 rounded-full border border-white/15 px-3 py-2 text-xs font-bold text-white/60 transition hover:border-white/35 hover:text-white"
         >
           ✕

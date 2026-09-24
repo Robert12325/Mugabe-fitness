@@ -3,15 +3,20 @@
 import Image from "next/image";
 import { useState } from "react";
 import Reveal from "@/components/motion/reveal";
+import { useT, type StringKey } from "@/lib/i18n";
 import { coachPhotoSrc } from "@/lib/store";
 import { useDB } from "@/lib/use-store";
 
 const FEATURES = [
-  { icon: "dumbbell", top: "Personalized", bottom: "Coaching" },
-  { icon: "target", top: "Real", bottom: "Results" },
-  { icon: "bolt", top: "Sustainable", bottom: "Progress" },
-  { icon: "peak", top: "Stronger", bottom: "You" },
-] as const;
+  { icon: "dumbbell", top: "hero.f1.top", bottom: "hero.f1.bottom" },
+  { icon: "target", top: "hero.f2.top", bottom: "hero.f2.bottom" },
+  { icon: "bolt", top: "hero.f3.top", bottom: "hero.f3.bottom" },
+  { icon: "peak", top: "hero.f4.top", bottom: "hero.f4.bottom" },
+] as const satisfies readonly {
+  icon: string;
+  top: StringKey;
+  bottom: StringKey;
+}[];
 
 type FeatureIconName = (typeof FEATURES)[number]["icon"];
 
@@ -21,6 +26,7 @@ const PHOTO_MASK =
   "radial-gradient(ellipse 62% 76% at 56% 42%, #000 48%, transparent 100%)";
 
 export default function Hero() {
+  const t = useT();
   const { settings } = useDB();
   const photo = coachPhotoSrc(settings);
   const tagline = settings.tagline.trim() || "Rise. Grind. Shine.";
@@ -55,21 +61,19 @@ export default function Hero() {
           </p>
 
           <h1 className="mt-6 text-[clamp(2.6rem,11.5vw,6.25rem)] font-black uppercase italic leading-[0.92] tracking-[-0.02em] sm:mt-7 xl:text-[7.25rem]">
-            <span className="block text-white">Become</span>
+            <span className="block text-white">{t("hero.become")}</span>
 
             {/* Sized to the word, not the column: gradient text is only
                 painted inside its own box, so a word wider than the column
                 would otherwise vanish past the edge. The right padding keeps
                 the slanted last letter from being clipped. */}
             <span className="block w-max whitespace-nowrap bg-[linear-gradient(100deg,#f5c518_0%,#ffd84a_42%,#fff3b0_50%,#f5c518_58%,#e2a900_100%)] bg-clip-text pr-[0.1em] text-transparent">
-              Stronger.
+              {t("hero.stronger")}
             </span>
           </h1>
 
           <p className="mt-6 max-w-xl text-base leading-7 text-white/80 sm:mt-8 sm:text-lg sm:leading-8 lg:max-w-md xl:max-w-xl">
-            Personal coaching built to help you train with purpose, build
-            strength, transform your physique, and become the strongest
-            version of yourself.
+            {t("hero.lede")}
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4">
@@ -77,7 +81,7 @@ export default function Hero() {
               href="#programs"
               className="group inline-flex items-center justify-center gap-3 rounded-full bg-[#f5c518] px-7 py-4 text-sm font-extrabold uppercase tracking-[0.03em] text-black shadow-[0_14px_36px_-14px_rgba(245,197,24,0.65)] transition hover:bg-[#ffd84a] sm:px-8"
             >
-              Start Your Transformation
+              {t("hero.cta")}
               <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </a>
 
@@ -85,7 +89,7 @@ export default function Hero() {
               href="#method"
               className="group inline-flex items-center justify-center gap-3 rounded-full border border-white/30 px-7 py-4 text-sm font-extrabold uppercase tracking-[0.03em] text-white transition hover:border-[#f5c518] hover:text-[#f5c518] sm:px-8"
             >
-              Discover The Method
+              {t("hero.method")}
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-black transition group-hover:bg-[#f5c518]">
                 <svg viewBox="0 0 24 24" aria-hidden className="ml-0.5 h-3.5 w-3.5">
                   <path d="M8 5.5v13l10.5-6.5z" fill="currentColor" />
@@ -99,7 +103,7 @@ export default function Hero() {
           <ul className="mt-12 grid grid-cols-2 gap-x-4 gap-y-6 sm:mt-14 md:grid-cols-4 md:gap-0 lg:grid-cols-2 lg:gap-x-4 lg:gap-y-6 xl:grid-cols-4 xl:gap-0">
             {FEATURES.map((feature, index) => (
               <li
-                key={feature.top}
+                key={feature.icon}
                 className={`flex items-center gap-3 md:pr-4 ${
                   index > 0
                     ? "md:border-l md:border-white/15 md:pl-5 lg:border-l-0 lg:pl-0 xl:border-l xl:pl-5"
@@ -112,9 +116,9 @@ export default function Hero() {
                 />
 
                 <span className="text-[11px] font-semibold uppercase leading-[1.4] tracking-[0.14em] text-white/70">
-                  {feature.top}
+                  {t(feature.top)}
                   <br />
-                  {feature.bottom}
+                  {t(feature.bottom)}
                 </span>
               </li>
             ))}
@@ -154,7 +158,7 @@ export default function Hero() {
           >
             <Image
               src={photo}
-              alt="Your coach at Mugabe Fitness"
+              alt={t("hero.photoAlt")}
               fill
               // Above the fold: load it straight away instead of lazily.
               // (`priority` is deprecated as of Next 16.)

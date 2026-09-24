@@ -289,3 +289,22 @@ section {
     animation: none !important;
   }
 }
+
+/* Montserrat and Yellowtail have no Devanagari. Swapping the variables means
+   every component that already asks for --font-display gets a Hindi face,
+   with no component changes at all. */
+html[lang="hi"] {
+  --font-display: var(--font-hindi);
+  --font-script: var(--font-hindi);
+}
+
+/* Devanagari sits taller than Latin, so the tightest tracking and the
+   heaviest uppercase treatment would otherwise collide. */
+html[lang="hi"] h1,
+html[lang="hi"] h2,
+html[lang="hi"] h3 {
+  text-transform: none;
+  font-style: normal;
+  letter-spacing: normal;
+  line-height: 1.25;
+}
