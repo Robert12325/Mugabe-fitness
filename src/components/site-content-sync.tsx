@@ -19,7 +19,12 @@ export default function SiteContentSync() {
       if (!active) return;
 
       if (result.state === "online" && result.initialized) {
-        replaceSiteContent(result.programs, result.method);
+        replaceSiteContent(
+          result.programs,
+          result.method,
+          result.settings,
+          result.photos,
+        );
       }
     });
 

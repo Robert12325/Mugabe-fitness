@@ -1,4 +1,4 @@
-import type { MethodStep, Program } from "@/lib/types";
+import type { MethodStep, Program, PublicSettings } from "@/lib/types";
 import { redis } from "./redis";
 
 const KEY = "mf:site:content";
@@ -9,7 +9,12 @@ const MAX_PROGRAMS = 24;
 const MAX_STEPS = 24;
 const MAX_LIST = 20;
 
-export type SiteContent = { programs: Program[]; method: MethodStep[] };
+export type SiteContent = {
+  programs: Program[];
+  method: MethodStep[];
+  /** null when a published document predates settings being shared. */
+  settings: PublicSettings | null;
+};
 
 type Parsed<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -110,6 +115,24 @@ export function parseMethodStep(input: unknown): MethodStep | null {
   return read.valid ? step : null;
 }
 
+export function parsePublicSettings(input: unknown): PublicSettings | null {
+  const body = asObject(input);
+
+  if (!body) return null;
+
+  const read = strictReader(body);
+
+  const settings: PublicSettings = {
+    brandName: read.text("brandName", 40),
+    brandSuffix: read.text("brandSuffix", 40),
+    tagline: read.text("tagline", 120),
+    coachEmail: read.text("coachEmail", 254),
+    coachPhone: read.text("coachPhone", 40),
+  };
+
+  return read.valid ? settings : null;
+}
+
 export function parseSiteContent(input: unknown): Parsed<SiteContent> {
   const body = asObject(input);
 
@@ -169,7 +192,17 @@ export function parseSiteContent(input: unknown): Parsed<SiteContent> {
     return { ok: false, error: "Two programs share the same id." };
   }
 
-  return { ok: true, value: { programs, method } };
+  let settings: PublicSettings | null = null;
+
+  if (body.settings !== undefined && body.settings !== null) {
+    settings = parsePublicSettings(body.settings);
+
+    if (!settings) {
+      return { ok: false, error: "Those site details can't be saved." };
+    }
+  }
+
+  return { ok: true, value: { programs, method, settings } };
 }
 
 /** null means the coach has never published content; the site then shows the

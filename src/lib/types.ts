@@ -125,6 +125,13 @@ export type Payment = {
   note: string;
 };
 
+/** The settings safe to publish: what every visitor sees. The admin
+ *  passcode and the photo data are deliberately not in here. */
+export type PublicSettings = Pick<
+  Settings,
+  "brandName" | "brandSuffix" | "tagline" | "coachEmail" | "coachPhone"
+>;
+
 export type DB = {
   version: number;
   leads: Lead[];

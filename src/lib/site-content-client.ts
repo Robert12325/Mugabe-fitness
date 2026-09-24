@@ -1,4 +1,4 @@
-import type { MethodStep, Program } from "@/lib/types";
+import type { MethodStep, Program, PublicSettings } from "@/lib/types";
 
 const ENDPOINT = "/api/site/content";
 
@@ -9,6 +9,9 @@ export type ContentLoad =
       initialized: boolean;
       programs: Program[];
       method: MethodStep[];
+      settings: PublicSettings | null;
+      /** One entry per slot: a URL when a photo is published, else "". */
+      photos: string[];
     }
   | { state: "offline" }
   | { state: "unauthorized" }
@@ -38,6 +41,8 @@ export async function fetchSiteContent({
       initialized?: unknown;
       programs?: unknown;
       method?: unknown;
+      settings?: unknown;
+      photoSlots?: unknown;
     };
 
     return {
@@ -47,6 +52,15 @@ export async function fetchSiteContent({
         ? (body.programs as Program[])
         : [],
       method: Array.isArray(body.method) ? (body.method as MethodStep[]) : [],
+      settings:
+        body.settings && typeof body.settings === "object"
+          ? (body.settings as PublicSettings)
+          : null,
+      photos: Array.isArray(body.photoSlots)
+        ? body.photoSlots.map((has, slot) =>
+            has === true ? `/api/site/photo/${slot}` : "",
+          )
+        : [],
     };
   } catch {
     return { state: "error", message: "Could not reach the server." };
@@ -60,12 +74,13 @@ export type ContentSave =
 export async function saveSiteContent(
   programs: Program[],
   method: MethodStep[],
+  settings: PublicSettings,
 ): Promise<ContentSave> {
   try {
     const response = await fetch(ENDPOINT, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ programs, method }),
+      body: JSON.stringify({ programs, method, settings }),
     });
 
     if (response.ok) return { ok: true };

@@ -11,6 +11,7 @@ import {
   jsonPublic,
   readJsonBody,
 } from "@/lib/server/http";
+import { photoSlots } from "@/lib/server/photos";
 import { storageConfigured } from "@/lib/server/redis";
 
 /**
@@ -26,13 +27,18 @@ export async function GET() {
   }
 
   try {
-    const content = await getSiteContent();
+    const [content, slots] = await Promise.all([
+      getSiteContent(),
+      photoSlots(),
+    ]);
 
     return jsonPublic(
       {
         initialized: content !== null,
         programs: content?.programs ?? [],
         method: content?.method ?? [],
+        settings: content?.settings ?? null,
+        photoSlots: slots,
       },
       30,
     );

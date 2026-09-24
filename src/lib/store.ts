@@ -7,6 +7,7 @@ import type {
   Payment,
   PaymentState,
   Program,
+  PublicSettings,
   Settings,
 } from "@/lib/types";
 import {
@@ -828,7 +829,12 @@ export function replaceBilling(clients: Client[], payments: Payment[]) {
 
 /** Replaces this browser copy of the programs and method steps with the
  *  published set, so every visitor sees the same site. */
-export function replaceSiteContent(programs: Program[], method: MethodStep[]) {
+export function replaceSiteContent(
+  programs: Program[],
+  method: MethodStep[],
+  settings: PublicSettings | null = null,
+  photos: string[] | null = null,
+) {
   return update((db) => ({
     ...db,
     programs: programs.map((program) => normalizeProgram(program, DB_VERSION)),
@@ -838,7 +844,34 @@ export function replaceSiteContent(programs: Program[], method: MethodStep[]) {
       title: step.title ?? "",
       text: step.text ?? "",
     })),
+    // Only the published slice is taken; the passcode stays as it is.
+    settings: {
+      ...db.settings,
+      ...(settings ?? {}),
+      // A published photo wins; an empty slot falls back to the built-in
+      // file, exactly as an empty setting always has.
+      ...(photos
+        ? {
+            coachPhoto: "",
+            coachPhotos: Array.from(
+              { length: MAX_COACH_PHOTOS },
+              (_, slot) => photos[slot] ?? "",
+            ),
+          }
+        : {}),
+    },
   }));
+}
+
+/** The slice of the settings that is safe to publish. */
+export function publicSettings(settings: Settings): PublicSettings {
+  return {
+    brandName: settings.brandName,
+    brandSuffix: settings.brandSuffix,
+    tagline: settings.tagline,
+    coachEmail: settings.coachEmail,
+    coachPhone: settings.coachPhone,
+  };
 }
 
 const BUILT_INS_KEY = "mugabe-fitness:built-ins";

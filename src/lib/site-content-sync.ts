@@ -1,5 +1,6 @@
 import {
   loadDB,
+  publicSettings,
   replaceSiteContent,
   seedBuiltInPrograms,
   subscribe,
@@ -61,7 +62,11 @@ let onUnauthorized: () => void = () => {};
 function signature() {
   const db = loadDB();
 
-  return JSON.stringify({ programs: db.programs, method: db.method });
+  return JSON.stringify({
+    programs: db.programs,
+    method: db.method,
+    settings: publicSettings(db.settings),
+  });
 }
 
 function watch() {
@@ -104,7 +109,11 @@ async function push() {
 
   try {
     const db = loadDB();
-    const result = await saveSiteContent(db.programs, db.method);
+    const result = await saveSiteContent(
+      db.programs,
+      db.method,
+      publicSettings(db.settings),
+    );
 
     if (gen !== generation) return;
 
@@ -165,7 +174,12 @@ export async function startContentSync(handleUnauthorized: () => void) {
   if (result.initialized) {
     // Published content wins, so a second device does not overwrite it.
     stopWatching();
-    replaceSiteContent(result.programs, result.method);
+    replaceSiteContent(
+      result.programs,
+      result.method,
+      result.settings,
+      result.photos,
+    );
     published = signature();
 
     // Published content would otherwise hide programs added to the code
@@ -221,7 +235,12 @@ export function refreshContentSync() {
       if (signature() !== published) return;
 
       stopWatching();
-      replaceSiteContent(result.programs, result.method);
+      replaceSiteContent(
+      result.programs,
+      result.method,
+      result.settings,
+      result.photos,
+    );
       published = signature();
       watch();
       setState({ status: "synced" });

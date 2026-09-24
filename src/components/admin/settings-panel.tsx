@@ -13,6 +13,7 @@ import {
   saveSettings,
 } from "@/lib/store";
 import { formatBytes, prepareImage } from "@/lib/image";
+import { removePhotoSlot, savePhotoSlot } from "@/lib/site-photo-client";
 import { useDB } from "@/lib/use-store";
 import CoachMediaCard from "./coach-media-card";
 import PaymentSettingsCard from "./payment-settings-card";
@@ -277,9 +278,25 @@ function PhotoSlot({
 
     try {
       const image = await prepareImage(file);
+      const size = `${image.width}×${image.height}, ${formatBytes(image.bytes)}`;
+
+      // Send it to the database first, so the picture is the one every
+      // visitor sees rather than a copy trapped in this browser.
+      const uploaded = await savePhotoSlot(index, image.dataUrl);
+
+      if (uploaded.ok) {
+        saveSlot(uploaded.url);
+        setNote(`${size}. Everyone sees it within a minute.`);
+        return;
+      }
+
+      if (!uploaded.offline) {
+        setError(uploaded.message);
+        return;
+      }
 
       if (saveSlot(image.dataUrl)) {
-        setNote(`${image.width}×${image.height}, ${formatBytes(image.bytes)}.`);
+        setNote(`${size}. Saved in this browser only — no database connected.`);
       } else {
         // The in-memory copy still shows it, but a reload would lose it, so
         // say so rather than let it silently disappear.
@@ -359,6 +376,7 @@ function PhotoSlot({
           <Btn
             variant="danger"
             onClick={() => {
+              void removePhotoSlot(index);
               saveSlot("");
               setNote("Back to the built-in photo.");
               setError("");
