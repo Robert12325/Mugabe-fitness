@@ -1,6 +1,7 @@
 "use client";
 
 import { deleteStep, newId, saveStep } from "@/lib/store";
+import { byNumber } from "@/lib/order";
 import { useDB } from "@/lib/use-store";
 import { Btn, Card, Field, SectionTitle, TextField } from "./ui";
 
@@ -33,7 +34,7 @@ export default function MethodPanel() {
       />
 
       <div className="grid gap-4 md:grid-cols-2">
-        {db.method.map((step) => (
+        {byNumber(db.method).map((step) => (
           <div
             key={step.id}
             className="rounded-2xl border border-white/10 bg-white/[0.015] p-5"

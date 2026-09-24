@@ -748,3 +748,18 @@ export function replaceBilling(clients: Client[], payments: Payment[]) {
     payments: payments.map(normalizePayment),
   }));
 }
+
+/** Replaces this browser copy of the programs and method steps with the
+ *  published set, so every visitor sees the same site. */
+export function replaceSiteContent(programs: Program[], method: MethodStep[]) {
+  return update((db) => ({
+    ...db,
+    programs: programs.map((program) => normalizeProgram(program, DB_VERSION)),
+    method: method.map((step) => ({
+      id: step.id,
+      number: step.number ?? "",
+      title: step.title ?? "",
+      text: step.text ?? "",
+    })),
+  }));
+}

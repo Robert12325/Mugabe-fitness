@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { deleteProgram, newId, saveProgram } from "@/lib/store";
 import type { Program } from "@/lib/types";
+import { byNumber } from "@/lib/order";
 import { useDB } from "@/lib/use-store";
 import { Btn, Card, Field, SectionTitle, TextField } from "./ui";
 
@@ -49,7 +50,7 @@ export default function ProgramsPanel() {
       />
 
       <div className="space-y-3">
-        {db.programs.map((program) => (
+        {byNumber(db.programs).map((program) => (
           <div
             key={program.id}
             className="rounded-2xl border border-white/10 bg-white/[0.015]"

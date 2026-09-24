@@ -14,6 +14,7 @@ import {
 } from "@/lib/account-client";
 import { chooseProgram } from "@/lib/chosen-plan";
 import { DEFAULT_COACH_PHOTO, coachPhotoAt } from "@/lib/store";
+import { byNumber } from "@/lib/order";
 import { useDB } from "@/lib/use-store";
 
 /** The promises above the cards. */
@@ -49,7 +50,7 @@ function featureIcon(feature: string): IconName {
 export default function Programs() {
   const db = useDB();
   const router = useRouter();
-  const programs = db.programs.filter((program) => program.active);
+  const programs = byNumber(db.programs.filter((program) => program.active));
 
   const session = useSyncExternalStore(
     subscribeSession,

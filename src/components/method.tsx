@@ -6,6 +6,7 @@ import Icon, { type IconName } from "@/components/icons";
 import Reveal from "@/components/motion/reveal";
 import SectionPhoto from "@/components/section-photo";
 import { DEFAULT_COACH_PHOTO, coachPhotoAt } from "@/lib/store";
+import { byNumber } from "@/lib/order";
 import { useDB } from "@/lib/use-store";
 
 /**
@@ -66,7 +67,8 @@ const ATHLETE_MASK =
   "radial-gradient(ellipse 58% 44% at 50% 40%, #000 34%, transparent 100%)";
 
 export default function Method() {
-  const { method, settings } = useDB();
+  const { method: savedMethod, settings } = useDB();
+  const method = byNumber(savedMethod);
   const tagline = settings.tagline.trim() || "Rise. Grind. Shine.";
 
   return (

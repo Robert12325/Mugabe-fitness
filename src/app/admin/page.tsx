@@ -28,6 +28,11 @@ import {
   stopBillingSync,
 } from "@/lib/billing-sync";
 import {
+  refreshContentSync,
+  startContentSync,
+  stopContentSync,
+} from "@/lib/site-content-sync";
+import {
   loadEnquiries,
   signIn,
   signOut,
@@ -103,12 +108,14 @@ export default function AdminPage() {
 
     load();
     void startBillingSync(() => setUnlocked(false));
+    void startContentSync(() => setUnlocked(false));
 
     // Returning to the tab picks up enquiries and payment changes made on
     // other devices while it was hidden.
     const onFocus = () => {
       load();
       refreshBilling();
+      refreshContentSync();
     };
 
     window.addEventListener("focus", onFocus);
@@ -117,6 +124,7 @@ export default function AdminPage() {
       active = false;
       window.removeEventListener("focus", onFocus);
       stopBillingSync();
+      stopContentSync();
     };
   }, [unlocked, apply]);
 
