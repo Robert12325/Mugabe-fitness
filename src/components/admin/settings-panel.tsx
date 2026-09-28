@@ -15,6 +15,7 @@ import {
 import { formatBytes, prepareImage } from "@/lib/image";
 import { removePhotoSlot, savePhotoSlot } from "@/lib/site-photo-client";
 import { useDB } from "@/lib/use-store";
+import ClientVideosCard from "./client-videos-card";
 import CoachMediaCard from "./coach-media-card";
 import PaymentSettingsCard from "./payment-settings-card";
 import { Btn, Card, Field, Notice, SectionTitle } from "./ui";
@@ -119,6 +120,8 @@ export default function SettingsPanel() {
       <PaymentSettingsCard />
 
       <CoachMediaCard />
+
+      <ClientVideosCard />
 
       <CoachPhotoCard />
 

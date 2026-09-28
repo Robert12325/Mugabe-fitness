@@ -1,5 +1,6 @@
 import Navbar from "@/components/navbar";
 import Hero from "@/components/hero";
+import ClientResults from "@/components/client-results";
 import Programs from "@/components/programs";
 import Method from "@/components/method";
 import WhyMugabe from "@/components/why-mugabe";
@@ -16,6 +17,7 @@ export default function Home() {
       <SiteContentSync />
       <Navbar />
       <Hero />
+      <ClientResults />
       <Programs />
       <Method />
       <WhyMugabe />
