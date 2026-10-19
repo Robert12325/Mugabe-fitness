@@ -79,6 +79,19 @@ export function parseGoal(input: unknown): Parsed<ProgressGoal> {
   };
 }
 
+/**
+ * The latest calendar date anywhere on Earth right now (UTC+14).
+ *
+ * `TODAY` from billing is fixed when the module loads, in the server's own
+ * timezone: UTC on Vercel, which would turn away an Indian client's morning
+ * weigh-in until 05:30, and go stale on an instance that lives past
+ * midnight. The browser already stops future dates in the client's own
+ * timezone; this only needs to refuse a date that is the future everywhere.
+ */
+function latestToday(now = Date.now()) {
+  return new Date(now + 14 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 export function parseEntry(input: unknown): Parsed<WeightEntry> {
   const body = asObject(input);
   const grams = Number(body.grams);
@@ -89,7 +102,7 @@ export function parseEntry(input: unknown): Parsed<WeightEntry> {
 
   const on = typeof body.on === "string" ? body.on.trim() : "";
 
-  if (!isValidDate(on)) {
+  if (!isValidDate(on, latestToday())) {
     return { ok: false, error: "Pick a date today or earlier." };
   }
 
