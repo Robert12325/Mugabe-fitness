@@ -26,6 +26,7 @@ import type { Client, Payment, PaymentStatus } from "@/lib/types";
 import { useDB } from "@/lib/use-store";
 import BillingSyncNotice from "./billing-sync-notice";
 import EmailText from "./email-text";
+import MembersCard from "./members-card";
 import type { IconName } from "@/components/icons";
 import {
   Btn,
@@ -142,6 +143,8 @@ export default function PaymentsPanel() {
 
   return (
     <div className="space-y-8">
+      <MembersCard />
+
       <BillingSyncNotice />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

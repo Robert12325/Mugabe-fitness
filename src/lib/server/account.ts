@@ -226,6 +226,26 @@ export async function listBookings(userId: string): Promise<AccountBooking[]> {
   }));
 }
 
+/** Profiles for the coach's member list, keyed by id. Unknown ids are left
+ *  out; the hashes never leave this module. */
+export async function getAccountUsers(
+  ids: string[],
+): Promise<Map<string, AccountUser>> {
+  const users = new Map<string, AccountUser>();
+
+  if (ids.length === 0) return users;
+
+  const values = await redis<unknown>("HMGET", USERS, ...ids);
+
+  (Array.isArray(values) ? values : []).forEach((value, index) => {
+    const stored = readStoredUser(value);
+
+    if (stored) users.set(ids[index], publicUser(stored));
+  });
+
+  return users;
+}
+
 /**
  * Whoever sent an enquiry may pay for it and follow it: with the token handed
  * back when it was sent, or — if it was sent while signed in — with that

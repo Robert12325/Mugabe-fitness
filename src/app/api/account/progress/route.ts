@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { userFromRequest } from "@/lib/server/account";
 import { jsonError, jsonOk, readJsonBody } from "@/lib/server/http";
+import { getMembership } from "@/lib/server/membership";
 import {
   allowProgressWrite,
   getProgress,
@@ -25,13 +26,31 @@ async function requireUser(request: NextRequest) {
     return { ok: false as const, response: jsonError(503, UNAVAILABLE) };
   }
 
-  const user = await userFromRequest(request);
+  try {
+    const user = await userFromRequest(request);
 
-  if (!user) {
-    return { ok: false as const, response: jsonError(401, "Please log in again.") };
+    if (!user) {
+      return { ok: false as const, response: jsonError(401, "Please log in again.") };
+    }
+
+    // Open during the free trial and any paid month. The log is kept when
+    // access lapses, and is waiting once a payment is confirmed.
+    if (!(await getMembership(user.id)).hasAccess) {
+      return {
+        ok: false as const,
+        response: jsonError(
+          403,
+          "Your access has expired. Renew your membership to continue.",
+        ),
+      };
+    }
+
+    return { ok: true as const, user };
+  } catch (cause) {
+    console.error("[progress] auth failed", cause);
+
+    return { ok: false as const, response: jsonError(500, UNAVAILABLE) };
   }
-
-  return { ok: true as const, user };
 }
 
 export async function GET(request: NextRequest) {

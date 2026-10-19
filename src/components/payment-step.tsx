@@ -55,7 +55,7 @@ export default function PaymentStep({
   // Primitives, not the object: the account page builds a new booking object
   // on every render, and that must not restart the status check.
   const { id, token, via } = booking;
-  const inAccount = via === "account";
+  const inAccount = via !== "enquiry";
 
   const check = useCallback(
     () =>
@@ -367,7 +367,7 @@ function PayForm({
 
   function startOver() {
     // From the account page this only closes; the booking stays listed.
-    if (booking.via === "account") return onClose();
+    if (booking.via !== "enquiry") return onClose();
 
     const ok = window.confirm(t("pay.confirmStartOver"));
 
@@ -620,7 +620,7 @@ function PayForm({
         onClick={startOver}
         className="mt-4 block w-full text-center text-xs font-bold text-black/60 underline underline-offset-4 transition hover:text-black"
       >
-        {booking.via === "account" ? t("pay.close") : t("pay.cancel")}
+        {booking.via !== "enquiry" ? t("pay.close") : t("pay.cancel")}
       </button>
     </div>
   );

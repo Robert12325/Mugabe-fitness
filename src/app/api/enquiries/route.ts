@@ -15,6 +15,7 @@ import {
   jsonOk,
   readJsonBody,
 } from "@/lib/server/http";
+import { startMembership } from "@/lib/server/membership";
 import { storageConfigured } from "@/lib/server/redis";
 
 /** Public — a visitor submits the contact form. */
@@ -49,9 +50,22 @@ export async function POST(request: NextRequest) {
     const user = await userFromRequest(request);
     const { lead, token } = await createEnquiry(parsed.value, user?.id ?? "");
 
+    // A signed-in visitor's first program booking starts their free trial.
+    // The booking is already saved, so a hiccup here must not fail it; the
+    // trial is picked up from the booking the next time it's read.
+    let trialEndsAt = "";
+
+    if (user && lead.programId) {
+      try {
+        trialEndsAt = await startMembership(user.id, lead.id);
+      } catch (cause) {
+        console.error("[enquiries] membership start failed", cause);
+      }
+    }
+
     // The token is the visitor's only key to paying for, and following, this
     // request — it is never shown to anyone else.
-    return jsonOk({ ok: true, id: lead.id, token }, 201);
+    return jsonOk({ ok: true, id: lead.id, token, trialEndsAt }, 201);
   } catch (cause) {
     console.error("[enquiries] create failed", cause);
 

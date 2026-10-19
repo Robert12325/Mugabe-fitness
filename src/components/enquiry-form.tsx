@@ -29,6 +29,7 @@ import {
 } from "@/lib/chosen-plan";
 import { submitEnquiry } from "@/lib/enquiries-client";
 import { useT, type StringKey } from "@/lib/i18n";
+import { formatMoment } from "@/lib/membership";
 import { paymentsEnabled } from "@/lib/payment";
 import {
   clearBooking,
@@ -100,6 +101,8 @@ export default function EnquiryForm() {
     "loading",
   );
   const [createdId, setCreatedId] = useState("");
+  // Set when the booking just sent started the visitor's free trial.
+  const [trialEndsAt, setTrialEndsAt] = useState("");
 
   // A request waiting on payment (or its verification) survives reloads, so
   // the visitor comes back to it rather than to an empty form.
@@ -306,6 +309,7 @@ export default function EnquiryForm() {
 
     if (result.ok) {
       setForm(formFor(session));
+      setTrialEndsAt(result.trialEndsAt);
 
       if (paying && selected && result.id && result.token) {
         saveBooking({
@@ -410,18 +414,24 @@ export default function EnquiryForm() {
 
         <div className="relative">
           {booking ? (
-            // The payment step is designed for the gold panel it used to sit
-            // on, so it keeps that ground here.
-            <div className="rounded-[2rem] bg-[#d4af37] p-3 sm:p-4">
-              <PaymentStep
-                key={booking.id}
-                booking={booking}
-                settings={settings}
-                fresh={booking.id === createdId}
-                onRetrySettings={retrySettings}
-                onClose={clearBooking}
-              />
-            </div>
+            <>
+              {trialEndsAt && booking.id === createdId && (
+                <TrialStarted endsAt={trialEndsAt} />
+              )}
+
+              {/* The payment step is designed for the gold panel it used to
+                  sit on, so it keeps that ground here. */}
+              <div className="rounded-[2rem] bg-[#d4af37] p-3 sm:p-4">
+                <PaymentStep
+                  key={booking.id}
+                  booking={booking}
+                  settings={settings}
+                  fresh={booking.id === createdId}
+                  onRetrySettings={retrySettings}
+                  onClose={clearBooking}
+                />
+              </div>
+            </>
           ) : phase === "sent" ? (
             <div role="status" className={`${goldCardClass} p-10`}>
               <GoldCardGlow />
@@ -438,6 +448,12 @@ export default function EnquiryForm() {
                 <p className="mt-3 text-sm leading-7 text-white/65">
                   {t("form.sentText")}
                 </p>
+
+                {trialEndsAt && (
+                  <div className="mt-6">
+                    <TrialStarted endsAt={trialEndsAt} />
+                  </div>
+                )}
 
                 <p className="mt-8 inline-block rounded-full bg-[linear-gradient(180deg,#f6d27a,#e0ac3c_55%,#b88420)] px-6 py-3 text-xs font-extrabold uppercase tracking-[0.12em] text-black">
                   {t("form.thankYou")}
@@ -724,12 +740,49 @@ export default function EnquiryForm() {
                     {t("form.payNote")}
                   </p>
                 )}
+
+                <p className="mt-3 text-center text-xs leading-5 text-white/55">
+                  {session ? (
+                    t("form.trialMember")
+                  ) : (
+                    <Link
+                      href="/account"
+                      className="text-[#e8c05a] underline underline-offset-4 transition hover:text-white"
+                    >
+                      {t("form.trialGuest")}
+                    </Link>
+                  )}
+                </p>
               </div>
             </form>
           )}
         </div>
       </div>
     </section>
+  );
+}
+
+/** Shown once a signed-in booking has started the free trial. */
+function TrialStarted({ endsAt }: { endsAt: string }) {
+  const t = useT();
+
+  return (
+    <div
+      role="status"
+      className="mb-4 rounded-2xl border border-[#d4af37]/35 bg-black/70 p-5 text-sm leading-6 text-white/80 backdrop-blur-md"
+    >
+      <p className="flex items-start gap-3">
+        <Icon name="bolt" className="mt-0.5 h-4 w-4 shrink-0 text-[#e0b54a]" />
+        {t("form.trialStarted").replace("{date}", formatMoment(endsAt))}
+      </p>
+
+      <Link
+        href="/account"
+        className="mt-3 inline-block text-xs font-extrabold uppercase tracking-[0.12em] text-[#e8c05a] underline underline-offset-4 transition hover:text-white"
+      >
+        {t("form.trialLink")}
+      </Link>
+    </div>
   );
 }
 

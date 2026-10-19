@@ -40,8 +40,9 @@ export type EnquiryPayload = {
 };
 
 export type SubmitResult =
-  /** `id` and `token` are "" when the server stored nothing (a bot). */
-  | { ok: true; id: string; token: string }
+  /** `id` and `token` are "" when the server stored nothing (a bot).
+   *  `trialEndsAt` is set when this booking started a free trial. */
+  | { ok: true; id: string; token: string; trialEndsAt: string }
   | {
       ok: false;
       kind: "invalid" | "rate" | "unavailable" | "network";
@@ -74,12 +75,15 @@ export async function submitEnquiry(
     const body = (await response.json().catch(() => null)) as {
       id?: unknown;
       token?: unknown;
+      trialEndsAt?: unknown;
     } | null;
 
     return {
       ok: true,
       id: typeof body?.id === "string" ? body.id : "",
       token: typeof body?.token === "string" ? body.token : "",
+      trialEndsAt:
+        typeof body?.trialEndsAt === "string" ? body.trialEndsAt : "",
     };
   }
 

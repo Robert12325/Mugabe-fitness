@@ -127,11 +127,14 @@ export function prepareScreenshot(file: File) {
  * An enquiry the visitor can pay for. `token` is either the enquiry's own
  * token (`via: "enquiry"`, from sending the form) or the visitor's account
  * session (`via: "account"`, from the account page).
+ *
+ * `via: "membership"` is the dashboard's renewal: paid with the account
+ * session, against the membership rather than one enquiry, so `id` is unused.
  */
 export type Booking = {
   id: string;
   token: string;
-  via: "enquiry" | "account";
+  via: "enquiry" | "account" | "membership";
   programName: string;
   /** As shown on the program card, e.g. "₹3,000/month". */
   amountLabel: string;
@@ -140,14 +143,16 @@ export type Booking = {
 
 type Access = Pick<Booking, "id" | "token" | "via">;
 
-function paymentUrl(id: string) {
-  return `/api/enquiries/${encodeURIComponent(id)}/payment`;
+function paymentUrl(access: Access) {
+  return access.via === "membership"
+    ? "/api/account/membership/payment"
+    : `/api/enquiries/${encodeURIComponent(access.id)}/payment`;
 }
 
 function accessHeaders(access: Access): Record<string, string> {
-  return access.via === "account"
-    ? { Authorization: `Bearer ${access.token}` }
-    : { "x-enquiry-token": access.token };
+  return access.via === "enquiry"
+    ? { "x-enquiry-token": access.token }
+    : { Authorization: `Bearer ${access.token}` };
 }
 
 async function readPayment(response: Response) {
@@ -165,7 +170,7 @@ export type StatusLoad =
 
 export async function fetchEnquiryPayment(access: Access): Promise<StatusLoad> {
   try {
-    const response = await fetch(paymentUrl(access.id), {
+    const response = await fetch(paymentUrl(access), {
       headers: accessHeaders(access),
       cache: "no-store",
     });
@@ -194,7 +199,7 @@ export async function sendPaymentProof(
   let response: Response;
 
   try {
-    response = await fetch(paymentUrl(access.id), {
+    response = await fetch(paymentUrl(access), {
       method: "POST",
       headers: { "Content-Type": "application/json", ...accessHeaders(access) },
       body: JSON.stringify(proof),
@@ -262,6 +267,7 @@ function parseBooking(raw: unknown): Booking | null {
   return {
     id: body.id,
     token: body.token,
+    // Renewals are never saved as the open booking; only these two are.
     via: body.via === "account" ? "account" : "enquiry",
     programName: typeof body.programName === "string" ? body.programName : "",
     amountLabel: typeof body.amountLabel === "string" ? body.amountLabel : "",

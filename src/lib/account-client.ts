@@ -7,6 +7,7 @@ import {
 } from "@/lib/account";
 import { readError } from "@/lib/enquiries-client";
 import { createLocalStore } from "@/lib/local-store";
+import { normalizeMembership, type Membership } from "@/lib/membership";
 
 /* ------------------------------------------------------------------ */
 /* Session                                                             */
@@ -99,7 +100,13 @@ export async function logOut(session: Session) {
 /* ------------------------------------------------------------------ */
 
 export type AccountLoad =
-  | { state: "ok"; user: AccountUser; bookings: AccountBooking[] }
+  | {
+      state: "ok";
+      user: AccountUser;
+      bookings: AccountBooking[];
+      /** Worked out, and enforced, by the server. */
+      membership: Membership;
+    }
   | { state: "signed-out" }
   | { state: "offline" }
   | { state: "error" };
@@ -125,6 +132,7 @@ export async function fetchAccount(token: string): Promise<AccountLoad> {
     const body = (await response.json()) as {
       user?: unknown;
       bookings?: unknown;
+      membership?: unknown;
     };
 
     const user = normalizeAccountUser(body.user);
@@ -135,7 +143,12 @@ export async function fetchAccount(token: string): Promise<AccountLoad> {
       .map(normalizeAccountBooking)
       .filter((booking): booking is AccountBooking => booking !== null);
 
-    return { state: "ok", user, bookings };
+    return {
+      state: "ok",
+      user,
+      bookings,
+      membership: normalizeMembership(body.membership),
+    };
   } catch {
     return { state: "error" };
   }

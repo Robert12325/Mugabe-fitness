@@ -9,6 +9,9 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import MembershipPanel, {
+  YourProgram,
+} from "@/components/account/membership-panel";
 import ProgressPanel from "@/components/account/progress-panel";
 import AthletePhoto from "@/components/athlete-photo";
 import BrandMark from "@/components/brand-mark";
@@ -704,12 +707,31 @@ function Dashboard({ session }: { session: Session }) {
 
   const firstName = user.name.split(" ")[0] || t("dash.there");
 
-  // A verified payment is what makes someone a client, and it is the coach
-  // who marks it verified — so this is his decision, read back.
-  const isClient =
-    load !== "loading" &&
-    load.state === "ok" &&
-    load.bookings.some((booking) => booking.payment.status === "verified");
+  // Trial or paid month — worked out on the server, which also refuses the
+  // dashboard's data to anyone whose access has lapsed.
+  const membership =
+    load !== "loading" && load.state === "ok" ? load.membership : null;
+
+  const hasAccess = membership?.hasAccess ?? false;
+
+  // Trial over or paid month run out: only the renewal screen and bookings.
+  const locked =
+    membership?.status === "due" || membership?.status === "expired";
+
+  function retrySettings() {
+    setSettings("loading");
+    fetchPaymentSettings().then(setSettings);
+  }
+
+  const membershipPanel = membership && (
+    <MembershipPanel
+      membership={membership}
+      token={token}
+      settings={settings}
+      onRetrySettings={retrySettings}
+      onChanged={() => setAttempt((n) => n + 1)}
+    />
+  );
 
   return (
     <div className="space-y-10">
@@ -733,32 +755,45 @@ function Dashboard({ session }: { session: Session }) {
         </button>
       </div>
 
-      <section className="rounded-2xl border border-white/10 bg-[#0b0b0b] p-6">
-        <h2 className="text-sm font-black uppercase tracking-wide text-white">
-          {t("dash.profile")}
-        </h2>
+      {locked ? (
+        membershipPanel
+      ) : (
+        <>
+          <section className="rounded-2xl border border-white/10 bg-[#0b0b0b] p-6">
+            <h2 className="text-sm font-black uppercase tracking-wide text-white">
+              {t("dash.profile")}
+            </h2>
 
-        <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-3">
-          {[
-            { label: "form.name" as StringKey, value: user.name },
-            { label: "form.email" as StringKey, value: user.email },
-            { label: "form.phone" as StringKey, value: user.phone },
-          ].map((item) => (
-            <div key={item.label} className="min-w-0">
-              <dt className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
-                {t(item.label)}
-              </dt>
+            <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-3">
+              {[
+                { label: "form.name" as StringKey, value: user.name },
+                { label: "form.email" as StringKey, value: user.email },
+                { label: "form.phone" as StringKey, value: user.phone },
+              ].map((item) => (
+                <div key={item.label} className="min-w-0">
+                  <dt className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
+                    {t(item.label)}
+                  </dt>
 
-              <dd className="mt-1.5 break-words text-white/75">
-                {item.value || "—"}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </section>
+                  <dd className="mt-1.5 break-words text-white/75">
+                    {item.value || "—"}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
 
-      {load !== "loading" && load.state === "ok" && (
-        <ProgressPanel token={token} unlocked={isClient} />
+          {membershipPanel}
+
+          {hasAccess && load !== "loading" && load.state === "ok" && (
+            <YourProgram
+              program={programs.get(membership?.programId ?? "")}
+              bookings={load.bookings}
+            />
+          )}
+
+          {membership && <ProgressPanel token={token} unlocked={hasAccess} />}
+        </>
       )}
 
       <section>
@@ -815,10 +850,7 @@ function Dashboard({ session }: { session: Session }) {
                     current === booking.id ? null : booking.id,
                   )
                 }
-                onRetrySettings={() => {
-                  setSettings("loading");
-                  fetchPaymentSettings().then(setSettings);
-                }}
+                onRetrySettings={retrySettings}
                 onClose={() => {
                   setOpenId(null);
                   // Pick up a payment sent or verified while it was open.

@@ -12,6 +12,7 @@ import {
   jsonOk,
   readJsonBody,
 } from "@/lib/server/http";
+import { getMembership } from "@/lib/server/membership";
 import { storageConfigured } from "@/lib/server/redis";
 
 /** Public — create a visitor account and sign in. */
@@ -64,7 +65,12 @@ export async function GET(request: NextRequest) {
 
     if (!user) return jsonError(401, "Please log in again.");
 
-    return jsonOk({ user, bookings: await listBookings(user.id) });
+    const [bookings, membership] = await Promise.all([
+      listBookings(user.id),
+      getMembership(user.id),
+    ]);
+
+    return jsonOk({ user, bookings, membership });
   } catch (cause) {
     console.error("[account] load failed", cause);
 
