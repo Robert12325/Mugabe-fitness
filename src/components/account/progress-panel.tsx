@@ -51,14 +51,19 @@ type Load = "loading" | "error" | "ready";
 export default function ProgressPanel({
   token,
   unlocked,
+  onWeightChanged,
 }: {
   token: string;
   unlocked: boolean;
+  /** A weigh-in was saved or removed here, so the daily log's weight
+   *  should be read again. */
+  onWeightChanged?: () => void;
 }) {
   const t = useT();
   const [load, setLoad] = useState<Load>("loading");
   const [attempt, setAttempt] = useState(0);
   const [progress, setProgress] = useState<Progress>(EMPTY_PROGRESS);
+  const [coachTarget, setCoachTarget] = useState<number | null>(null);
 
   useEffect(() => {
     if (!unlocked) return;
@@ -70,6 +75,7 @@ export default function ProgressPanel({
 
       if (result.state === "ok") {
         setProgress(result.progress);
+        setCoachTarget(result.coachTargetGrams);
         setLoad("ready");
       } else {
         setLoad("error");
@@ -115,7 +121,18 @@ export default function ProgressPanel({
     );
   }
 
-  const stats = progressStats(progress);
+  function weighInChanged(next: Progress) {
+    setProgress(next);
+    onWeightChanged?.();
+  }
+
+  // The coach's target, when set, is the one every weigh-in is measured
+  // against. The client's own goal is kept, and returns if it is cleared.
+  const stats = progressStats(
+    coachTarget
+      ? { ...progress, goal: { ...progress.goal, targetGrams: coachTarget } }
+      : progress,
+  );
 
   return (
     <div className="space-y-5">
@@ -149,7 +166,8 @@ export default function ProgressPanel({
             <GoalBar
               percent={stats.percent}
               reached={stats.reached}
-              targetOn={progress.goal.targetOn}
+              // The client's own deadline belongs to their own goal.
+              targetOn={coachTarget ? "" : progress.goal.targetOn}
             />
           )}
 
@@ -161,14 +179,18 @@ export default function ProgressPanel({
         <LogForm
           token={token}
           progress={progress}
-          onSaved={setProgress}
+          onSaved={weighInChanged}
         />
 
-        <GoalForm token={token} progress={progress} onSaved={setProgress} />
+        {coachTarget ? (
+          <CoachGoal grams={coachTarget} />
+        ) : (
+          <GoalForm token={token} progress={progress} onSaved={setProgress} />
+        )}
       </div>
 
       {progress.entries.length > 0 && (
-        <History token={token} progress={progress} onSaved={setProgress} />
+        <History token={token} progress={progress} onSaved={weighInChanged} />
       )}
     </div>
   );
@@ -633,6 +655,29 @@ function GoalForm({
         )}
       </div>
     </form>
+  );
+}
+
+/** In place of the goal form while the coach's target applies. */
+function CoachGoal({ grams }: { grams: number }) {
+  const t = useT();
+
+  return (
+    <section className={card}>
+      <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-white">
+        <Icon name="target" className="h-4 w-4 text-[#d4af37]" />
+        {t("nut.coachTarget")}
+      </h3>
+
+      <p className="mt-4 text-3xl font-black tracking-tight text-[#d4af37]">
+        {formatKg(grams)}
+        <span className="ml-1 text-sm font-bold text-white/40">{t("prog.kg")}</span>
+      </p>
+
+      <p className="mt-3 text-xs leading-6 text-white/50">
+        {t("nut.coachTargetNote")}
+      </p>
+    </section>
   );
 }
 

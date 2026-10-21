@@ -8,6 +8,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import Icon, { type IconName } from "@/components/icons";
+import ClientProgressPanel from "@/components/admin/client-progress-panel";
 import LeadsPanel from "@/components/admin/leads-panel";
 import MethodPanel from "@/components/admin/method-panel";
 import Overview from "@/components/admin/overview";
@@ -46,6 +47,7 @@ const TABS = [
   { id: "overview", label: "Overview", icon: "home" },
   { id: "leads", label: "Enquiries", icon: "users" },
   { id: "payments", label: "Payments", icon: "card" },
+  { id: "progress", label: "Progress", icon: "chart" },
   { id: "programs", label: "Programs", icon: "calendar" },
   { id: "method", label: "Method", icon: "dumbbell" },
   { id: "settings", label: "Settings", icon: "gear" },
@@ -62,7 +64,7 @@ const ALERT_TONE = {
 };
 
 // Labels show on phones-to-tablets and on wide screens. On laptops (xl up to
-// 1600px) the six tabs need the room, so the buttons shrink to icons.
+// 1600px) the seven tabs need the room, so the buttons shrink to icons.
 const headerButton =
   "inline-flex h-11 shrink-0 items-center gap-2.5 rounded-full border border-white/15 bg-black/40 px-4 text-sm font-semibold text-white/85 transition hover:border-white/35 hover:text-white sm:h-12 sm:px-6 xl:px-4 min-[1600px]:px-6";
 
@@ -336,6 +338,7 @@ export default function AdminPage() {
               />
             )}
             {tab === "payments" && <PaymentsPanel />}
+            {tab === "progress" && <ClientProgressPanel />}
             {tab === "programs" && <ProgramsPanel />}
             {tab === "method" && <MethodPanel />}
             {tab === "settings" && <SettingsPanel />}

@@ -88,7 +88,7 @@ export function parseGoal(input: unknown): Parsed<ProgressGoal> {
  * midnight. The browser already stops future dates in the client's own
  * timezone; this only needs to refuse a date that is the future everywhere.
  */
-function latestToday(now = Date.now()) {
+export function latestToday(now = Date.now()) {
   return new Date(now + 14 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 

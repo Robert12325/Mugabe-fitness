@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
-import { userFromRequest } from "@/lib/server/account";
+import { requireClient } from "@/lib/server/client-access";
+import { getTargets } from "@/lib/server/daily";
 import { jsonError, jsonOk, readJsonBody } from "@/lib/server/http";
-import { getMembership } from "@/lib/server/membership";
 import {
   allowProgressWrite,
   getProgress,
@@ -11,7 +11,6 @@ import {
   saveEntry,
   saveGoal,
 } from "@/lib/server/progress";
-import { storageConfigured } from "@/lib/server/redis";
 
 /**
  * A client's own weight log. Every method is the signed-in visitor acting
@@ -21,36 +20,8 @@ import { storageConfigured } from "@/lib/server/redis";
 
 const UNAVAILABLE = "Progress tracking isn't available right now.";
 
-async function requireUser(request: NextRequest) {
-  if (!storageConfigured()) {
-    return { ok: false as const, response: jsonError(503, UNAVAILABLE) };
-  }
-
-  try {
-    const user = await userFromRequest(request);
-
-    if (!user) {
-      return { ok: false as const, response: jsonError(401, "Please log in again.") };
-    }
-
-    // Open during the free trial and any paid month. The log is kept when
-    // access lapses, and is waiting once a payment is confirmed.
-    if (!(await getMembership(user.id)).hasAccess) {
-      return {
-        ok: false as const,
-        response: jsonError(
-          403,
-          "Your access has expired. Renew your membership to continue.",
-        ),
-      };
-    }
-
-    return { ok: true as const, user };
-  } catch (cause) {
-    console.error("[progress] auth failed", cause);
-
-    return { ok: false as const, response: jsonError(500, UNAVAILABLE) };
-  }
+function requireUser(request: NextRequest) {
+  return requireClient(request, UNAVAILABLE);
 }
 
 export async function GET(request: NextRequest) {
@@ -59,7 +30,13 @@ export async function GET(request: NextRequest) {
   if (!auth.ok) return auth.response;
 
   try {
-    return jsonOk({ progress: await getProgress(auth.user.id) });
+    const [progress, targets] = await Promise.all([
+      getProgress(auth.user.id),
+      getTargets(auth.user.id),
+    ]);
+
+    // The coach's target weight, when set, is the one measured against.
+    return jsonOk({ progress, coachTargetGrams: targets.weightGrams });
   } catch (cause) {
     console.error("[progress] load failed", cause);
 

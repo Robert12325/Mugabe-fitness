@@ -12,6 +12,7 @@ import {
 import MembershipPanel, {
   YourProgram,
 } from "@/components/account/membership-panel";
+import NutritionPanel from "@/components/account/nutrition-panel";
 import ProgressPanel from "@/components/account/progress-panel";
 import AthletePhoto from "@/components/athlete-photo";
 import BrandMark from "@/components/brand-mark";
@@ -675,6 +676,9 @@ function Dashboard({ session }: { session: Session }) {
     "loading",
   );
   const [openId, setOpenId] = useState<string | null>(null);
+  // Both panels show weight; a save in one has the other read it again.
+  const [weightVersion, setWeightVersion] = useState(0);
+  const [nutritionVersion, setNutritionVersion] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -759,6 +763,16 @@ function Dashboard({ session }: { session: Session }) {
         membershipPanel
       ) : (
         <>
+          {/* First, so a client opening the dashboard can log their day
+              straight away. The server refuses it without access anyway. */}
+          {hasAccess && (
+            <NutritionPanel
+              key={`nutrition-${nutritionVersion}`}
+              token={token}
+              onWeightChanged={() => setWeightVersion((n) => n + 1)}
+            />
+          )}
+
           <section className="rounded-2xl border border-white/10 bg-[#0b0b0b] p-6">
             <h2 className="text-sm font-black uppercase tracking-wide text-white">
               {t("dash.profile")}
@@ -792,7 +806,14 @@ function Dashboard({ session }: { session: Session }) {
             />
           )}
 
-          {membership && <ProgressPanel token={token} unlocked={hasAccess} />}
+          {membership && (
+            <ProgressPanel
+              key={`weight-${weightVersion}`}
+              token={token}
+              unlocked={hasAccess}
+              onWeightChanged={() => setNutritionVersion((n) => n + 1)}
+            />
+          )}
         </>
       )}
 

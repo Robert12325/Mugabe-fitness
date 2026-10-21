@@ -1,5 +1,6 @@
 import { readError } from "@/lib/enquiries-client";
 import {
+  isValidWeight,
   normalizeProgress,
   type Progress,
   type ProgressGoal,
@@ -12,7 +13,12 @@ import {
  */
 
 export type ProgressLoad =
-  | { state: "ok"; progress: Progress }
+  | {
+      state: "ok";
+      progress: Progress;
+      /** The coach's target weight, which wins over the client's own. */
+      coachTargetGrams: number | null;
+    }
   | { state: "signed-out" }
   | { state: "offline" }
   | { state: "error" };
@@ -46,9 +52,19 @@ export async function fetchProgress(token: string): Promise<ProgressLoad> {
     if (response.status === 503) return { state: "offline" };
     if (!response.ok) return { state: "error" };
 
-    const progress = readProgress(await response.json());
+    const body: unknown = await response.json();
+    const progress = readProgress(body);
+    const coach = (body as { coachTargetGrams?: unknown } | null)
+      ?.coachTargetGrams;
 
-    return progress ? { state: "ok", progress } : { state: "error" };
+    return progress
+      ? {
+          state: "ok",
+          progress,
+          coachTargetGrams:
+            typeof coach === "number" && isValidWeight(coach) ? coach : null,
+        }
+      : { state: "error" };
   } catch {
     return { state: "error" };
   }
