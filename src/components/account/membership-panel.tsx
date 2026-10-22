@@ -280,10 +280,14 @@ export default function MembershipPanel({
           <button
             type="button"
             onClick={() => setPaying(true)}
-            className={locked ? `${goldButton} w-full py-4 text-sm sm:w-auto sm:px-10` : goldButton}
+            className={locked ? `${goldButton} w-full py-4 sm:w-auto sm:px-10` : goldButton}
           >
             <Icon name="rupee" className="h-4 w-4" />
-            {t(payLabel)}
+            {/* Sized here: a site-wide rule gives buttons their parent's
+                font, which outranks the size on the button itself. */}
+            <span className={`font-black ${locked ? "text-sm" : "text-xs"}`}>
+              {t(payLabel)}
+            </span>
           </button>
         </div>
       )}
