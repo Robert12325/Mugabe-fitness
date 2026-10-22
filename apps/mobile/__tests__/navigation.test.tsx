@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react-native";
+import { configure, fireEvent, screen, waitFor } from "@testing-library/react-native";
 import { renderRouter, testRouter } from "expo-router/testing-library";
 
 /**
@@ -17,6 +17,12 @@ jest.mock("expo-secure-store", () => ({
 
 // Resolved from the working directory, which Jest sets to apps/mobile.
 const APP_DIR = "./src/app";
+
+// Rendering the whole router is slow on a cold first run — a fresh clone
+// with an empty Jest cache took over five seconds for the first screen on a
+// low-memory machine. Generous limits keep that from failing the suite.
+jest.setTimeout(60_000);
+configure({ asyncUtilTimeout: 10_000 });
 
 describe("navigation", () => {
   it("opens on Home with the sign-in and registration entry points", async () => {
