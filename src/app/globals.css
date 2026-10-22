@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* The mobile app in apps/ has its own styling; without this, Tailwind's
+   automatic scan would read class-like words from it into the site's CSS. */
+@source not "../../apps";
+
 :root {
   --brand-gold: #d4af37;
   --brand-gold-light: #e7c65c;
