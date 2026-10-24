@@ -5,7 +5,7 @@ import { renderRouter, testRouter } from "expo-router/testing-library";
 /**
  * The workout library's two modes and their categories, and the Workouts
  * tab that shows them, with the real catalogue: 44 exercises published
- * ahead of the coach's review, 8 held back. The exercise screens are tested
+ * ahead of the coach's review: all 135. The exercise screens are tested
  * in detail with stand-ins in workout-exercises.test.tsx.
  */
 
@@ -67,7 +67,7 @@ describe("shared catalogue — modes and categories", () => {
 
   it("shows clients the published exercises in both modes", () => {
     const total = MODES.reduce((sum, mode) => sum + CATALOGUE.published(mode.id).length, 0);
-    expect(total).toBe(44);
+    expect(total).toBe(135);
   });
 });
 
@@ -89,9 +89,8 @@ describe("Workouts tab", () => {
     expect(await screen.findByTestId("screen-workout-mode")).toBeTruthy();
     expect(screen.getByTestId("category-biceps-triceps")).toBeTruthy();
     expect(screen.queryByTestId("category-arms")).toBeNull();
-    // Every equipment category has published exercises; held ones aren't counted.
     expect(screen.queryAllByText("Exercises coming soon")).toHaveLength(0);
-    expect(screen.getByRole("button", { name: "Chest, 2 exercises" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Chest, 10 exercises" })).toBeTruthy();
 
     // Awaited, so the navigation settles before the next test renders.
     await act(async () => {
@@ -112,7 +111,7 @@ describe("Workouts tab", () => {
     expect(screen.getByText(/needs a sturdy chair, table or towel says so/)).toBeTruthy();
   });
 
-  it("lists a category's published exercises, without the held or removed ones", async () => {
+  it("lists a category's published exercises, without the removed one", async () => {
     await renderRouter(APP_DIR, { initialUrl: "/workouts/no-equipment" });
 
     await fireEvent.press(await screen.findByTestId("category-back"));
@@ -120,7 +119,8 @@ describe("Workouts tab", () => {
 
     expect(await screen.findByTestId("exercise-prone-y-t-raise")).toBeTruthy();
     expect(screen.getByTestId("exercise-reverse-snow-angel")).toBeTruthy();
-    expect(screen.queryByTestId("exercise-superman")).toBeNull(); // held
+    expect(screen.getByTestId("exercise-superman")).toBeTruthy();
+    expect(screen.getByTestId("exercise-bird-dog")).toBeTruthy();
     expect(screen.queryByTestId("exercise-inverted-table-row")).toBeNull(); // removed
   });
 
@@ -131,8 +131,8 @@ describe("Workouts tab", () => {
     expect(screen.getByText(/Not yet reviewed by your coach/)).toBeTruthy();
   });
 
-  it("won't open a held exercise by its address", async () => {
-    await renderRouter(APP_DIR, { initialUrl: "/workouts/no-equipment/exercises/superman" });
+  it("won't open the removed exercise by its address", async () => {
+    await renderRouter(APP_DIR, { initialUrl: "/workouts/no-equipment/exercises/inverted-table-row" });
 
     expect(await screen.findByText("Exercise not found")).toBeTruthy();
     expect(screen.queryByText("How to do it")).toBeNull();

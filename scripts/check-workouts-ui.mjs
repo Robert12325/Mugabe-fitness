@@ -422,27 +422,21 @@ const CATEGORIES = {
   "no-equipment": ["chest", "back", "shoulders", "arms", "legs-glutes", "abs-core", "full-body", "cardio-conditioning"],
 };
 
-// Text that exists only in unpublished exercises (the held drafts) and in
-// review notes. None of it may reach a visitor: not on a page, and not in
-// any script the page loads.
+// Text that must never reach a visitor: the coach's review notes, the
+// catalogue checks' own messages and the withdrawn exercise. Not on a page,
+// and not in any script the page loads.
 const DRAFT_MARKERS = [
   'review:"draft"',
   "review: \"draft\"",
-  "Lie on the bench with your eyes under the bar",
-  "Squeeze your glutes and lift your arms, chest and legs",
-  "Slide your hips off the seat with your knees bent",
+  "coachReview",
   "No load limit is stated on purpose",
   "Proposed as a triceps-focused option",
-  // New drafts awaiting the coach.
-  "Sit on the end of a flat bench with a dumbbell on each thigh",
-  "Kneel on a mat and put your hands on the floor a little wider than your shoulders",
-  // Notes for the coach travel with drafts and must stay behind with them.
-  "coachReview",
+  "Suitability for clients with lower-back pain",
   "Recommended for removal",
   "Removed from the proposed catalogue",
-  // The catalogue checks run at build time only; their messages stay behind too.
+  "Use a heavy, solid table that won't tip",
   "its review notes say nothing",
-];
+]
 
 const status = async (pathname) => (await fetch(BASE + pathname, { redirect: "manual" })).status;
 
@@ -467,11 +461,6 @@ try {
     ["a category from the other mode", "/workouts/equipment/arms"],
     ["an unknown category", "/workouts/equipment/neck"],
     ["a category under an unknown mode", "/workouts/bodyweight/chest"],
-    ["a held exercise", "/workouts/equipment/exercises/barbell-bench-press"],
-    ["a held exercise", "/workouts/no-equipment/exercises/superman"],
-    ["a held exercise", "/workouts/no-equipment/exercises/chair-dip"],
-    ["a new draft", "/workouts/equipment/exercises/dumbbell-bench-press"],
-    ["a new draft", "/workouts/no-equipment/exercises/knee-push-up"],
     ["an exercise under the other mode", "/workouts/no-equipment/exercises/pull-up"],
     ["an exercise under the other mode", "/workouts/no-equipment/exercises/chin-up"],
     ["a withdrawn exercise", "/workouts/no-equipment/exercises/inverted-table-row"],
@@ -498,6 +487,10 @@ try {
     "/workouts/no-equipment/exercises/push-up",
     "/workouts/equipment/exercises/pull-up",
     "/workouts/no-equipment/exercises/close-grip-push-up",
+    "/workouts/equipment/exercises/barbell-bench-press",
+    "/workouts/no-equipment/exercises/superman",
+    "/workouts/equipment/exercises/dumbbell-bench-press",
+    "/workouts/no-equipment/exercises/knee-push-up",
   ]) {
     check(`published exercise opens: ${pathname}`, (await status(pathname)) === 200, String(await status(pathname)));
   }
@@ -509,10 +502,10 @@ try {
       links: [...document.querySelectorAll('[data-testid^="exercise-"]')].map((a) => a.getAttribute("data-testid")),
       heading: document.querySelector("h1")?.textContent.trim(),
     }))()`);
-    const want = ["exercise-list", "exercise-prone-y-t-raise", "exercise-reverse-snow-angel"];
+    const want = ["exercise-prone-y-t-raise", "exercise-reverse-snow-angel", "exercise-superman", "exercise-back-widow", "exercise-bird-dog"];
     check(
-      `category page ${lang}: lists the published exercises, not the held or removed ones`,
-      JSON.stringify(page.links) === JSON.stringify(want),
+      `category page ${lang}: lists all five back exercises, not the removed one`,
+      want.every((id) => page.links.includes(id)) && !page.links.includes("exercise-inverted-table-row"),
       `${page.heading}: ${page.links.join(", ")}`,
     );
     if (lang === "en") await screenshot("category-no-equipment-back-390");

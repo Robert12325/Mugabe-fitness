@@ -25,8 +25,9 @@ import { validateCatalogue } from "@mugabe/fitness-content/validate";
 
 const EXERCISES = [...PUBLISHED_EXERCISES, ...DRAFT_EXERCISES];
 
-// Held back from early publishing until the coach answers their safety questions.
-const HELD = [
+// Once held back for their safety questions; published by the owner since,
+// still awaiting the coach's answers.
+const SAFETY_QUESTIONS = [
   "barbell-bench-press",
   "barbell-back-squat",
   "romanian-deadlift",
@@ -74,28 +75,23 @@ describe("the real catalogue", () => {
     ).toBe(true);
   });
 
-  it("publishes 44 ahead of the coach's review, none marked as coach-approved", () => {
-    expect(PUBLISHED_EXERCISES).toHaveLength(44);
+  it("publishes all 135 ahead of the coach's review, none marked as coach-approved", () => {
+    expect(PUBLISHED_EXERCISES).toHaveLength(135);
+    expect(DRAFT_EXERCISES).toEqual([]);
     expect(PUBLISHED_EXERCISES.every((exercise) => exercise.review === "published-pending-review")).toBe(true);
     expect(PUBLISHED_EXERCISES.some((exercise) => exercise.review === "coach-approved")).toBe(false);
+    for (const exercise of PUBLISHED_EXERCISES) expect(CATALOGUE.find(exercise.mode, exercise.slug)).toBe(exercise);
   });
 
-  it("holds back the 8 with open safety questions, and shows them nowhere", () => {
-    const drafts = DRAFT_EXERCISES.map((exercise) => exercise.slug);
-    expect(HELD.every((slug) => drafts.includes(slug))).toBe(true);
-    for (const mode of MODES) {
-      for (const slug of HELD) expect(CATALOGUE.find(mode.id, slug)).toBeUndefined();
-      expect(CATALOGUE.published(mode.id).some((exercise) => HELD.includes(exercise.slug))).toBe(false);
+  it("keeps the coach's safety questions on record for the exercises published without answers", () => {
+    for (const slug of SAFETY_QUESTIONS) {
+      expect(PENDING_REVIEW_NOTES[slug]?.check.length).toBeGreaterThan(0);
     }
-    expect(CATALOGUE.find("no-equipment", "push-up")?.name).toBe("Push-up");
-    expect(CATALOGUE.find("equipment", "pull-up")?.name).toBe("Pull-up");
   });
 
-  it("keeps every other draft a new exercise awaiting the coach, hidden from clients", () => {
-    const others = DRAFT_EXERCISES.filter((exercise) => !HELD.includes(exercise.slug));
-    expect(others.length).toBeGreaterThan(0);
-    expect(others.every((exercise) => exercise.coachReview?.status === "new")).toBe(true);
-    for (const exercise of others) expect(CATALOGUE.find(exercise.mode, exercise.slug)).toBeUndefined();
+  it("records every exercise added in the expansion as new, awaiting the coach", () => {
+    const fresh = Object.entries(PENDING_REVIEW_NOTES).filter(([, review]) => review.status === "new");
+    expect(fresh.length).toBeGreaterThanOrEqual(83);
   });
 
   it("has at most 10 exercises in any category, counting published and drafts", () => {
@@ -119,10 +115,10 @@ describe("the real catalogue", () => {
     expect(Object.keys(entryPoint)).not.toContain("PENDING_REVIEW_NOTES");
   });
 
-  it("hides held exercises when a published one lists them as alternatives", () => {
+  it("offers published alternatives now that the held ones are published", () => {
     const crunch = CATALOGUE.find("equipment", "cable-crunch");
     expect(crunch?.alternatives).toEqual(["hanging-knee-raise"]);
-    expect(CATALOGUE.alternativesOf(crunch!)).toEqual([]);
+    expect(CATALOGUE.alternativesOf(crunch!).map((exercise) => exercise.slug)).toEqual(["hanging-knee-raise"]);
   });
 
   it("doesn't hand drafts, withdrawn exercises or the checks to the website or app", () => {
@@ -298,7 +294,11 @@ describe("checks on incomplete or inconsistent exercises", () => {
   });
 
   it("won't let an approved exercise keep technical-review notes", () => {
-    const approvedWithNotes = { ...approve({ ...bySlug("superman"), alternatives: [] }), amountsConfirmed: true as const };
+    const approvedWithNotes = {
+      ...approve({ ...bySlug("superman"), alternatives: [] }),
+      amountsConfirmed: true as const,
+      coachReview: { status: "new" as const, changes: [], check: ["Suitability for clients with lower-back pain."] },
+    };
     expect(check(approvedWithNotes)).toEqual([
       'Exercise "superman": an approved exercise can\'t still carry technical-review notes.',
     ]);
@@ -312,7 +312,7 @@ describe("checks on incomplete or inconsistent exercises", () => {
   });
 
   it("lets the build check the published list alone, without reporting draft alternatives", () => {
-    // Cable crunch lists the held Hanging knee raise.
+    // Cable crunch lists the Hanging knee raise, not in the list checked here.
     const crunch = bySlug("cable-crunch");
     expect(validateCatalogue(MODES, [crunch])).toEqual([
       'Exercise "cable-crunch": alternative "hanging-knee-raise" is not in the catalogue.',
