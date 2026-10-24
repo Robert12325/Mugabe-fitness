@@ -37,6 +37,25 @@ export const CATEGORY_TEXT: Record<CategorySlug, StringKey> = {
   "cardio-conditioning": "wk.cat.cardio-conditioning",
 };
 
+/** One line describing what each category trains, for its page's hero. */
+export const CATEGORY_DESCRIPTION: Record<CategorySlug, StringKey> = {
+  chest: "wk.catText.chest",
+  back: "wk.catText.back",
+  shoulders: "wk.catText.shoulders",
+  "biceps-triceps": "wk.catText.biceps-triceps",
+  arms: "wk.catText.arms",
+  "legs-glutes": "wk.catText.legs-glutes",
+  "abs-core": "wk.catText.abs-core",
+  "full-body": "wk.catText.full-body",
+  "cardio-conditioning": "wk.catText.cardio-conditioning",
+};
+
+/** Short mode labels: "With equipment", "Without equipment". */
+export const MODE_SHORT: Record<WorkoutModeId, StringKey> = {
+  equipment: "wk.mode.with",
+  "no-equipment": "wk.mode.without",
+};
+
 export const DIFFICULTY_TEXT: Record<Difficulty, StringKey> = {
   beginner: "wk.diff.beginner",
   intermediate: "wk.diff.intermediate",

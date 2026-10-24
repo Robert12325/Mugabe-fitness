@@ -539,6 +539,120 @@ try {
   check('category page header: signed out shows "Log in"', (await accountLink()) === "Log in", await accountLink());
   await screenshot("category-equipment-biceps-1280");
 
+  // --- Category pages: the redesign ---------------------------------------
+  const MODE_LABEL = { equipment: "With equipment", "no-equipment": "Without equipment" };
+  for (const [mode, slugs] of Object.entries(CATEGORIES)) {
+    for (const slug of slugs) {
+      await visit(`/workouts/${mode}/${slug}`, { width: 1280 });
+      const page = await evaluate(`(() => {
+        const art = document.querySelector('[data-testid="category-art"]');
+        const cards = [...document.querySelectorAll('[data-testid="exercise-list"] a[data-testid^="exercise-"]')];
+        const status = document.querySelector('[data-testid="filter-status"]')?.textContent.trim() ?? "";
+        return {
+          title: document.querySelector("h1")?.textContent.trim() ?? "",
+          mode: document.querySelector('[data-testid="mode-label"]')?.textContent.trim() ?? "",
+          artHidden: art?.getAttribute("aria-hidden") === "true",
+          cards: cards.length,
+          hrefsOk: cards.every((a) => a.getAttribute("href").startsWith("/workouts/${mode}/exercises/")),
+          status,
+        };
+      })()`);
+      const total = Number((page.status.match(/of (\\d+)/) ?? [])[1] ?? page.cards);
+      check(
+        `${mode}/${slug}: hero, mode label, decorative art and one card per exercise`,
+        page.title && page.mode === MODE_LABEL[mode] && page.artHidden && page.cards > 0 && page.cards === total && page.hrefsOk,
+        `${page.title}, ${page.mode}, ${page.cards} cards${page.status ? `, "${page.status}"` : ""}`,
+      );
+    }
+  }
+
+  // Filters narrow the list and reset it.
+  await visit("/workouts/equipment/biceps-triceps", { width: 1280 });
+  const filtered = await evaluate(`(async () => {
+    const wait = () => new Promise((r) => setTimeout(r, 150));
+    const cards = () => [...document.querySelectorAll('[data-testid="exercise-list"] a[data-testid^="exercise-"]')];
+    const before = cards().length;
+    const groups = [...document.querySelectorAll('[data-testid="exercise-list"] h2')].map((h) => h.textContent.trim());
+    document.querySelector('[data-testid="filter-difficulty"] button[data-value="intermediate"]').click();
+    await wait();
+    const levels = cards().map((a) => a.textContent);
+    const after = cards().length;
+    const pressed = document.querySelector('[data-testid="filter-difficulty"] button[data-value="intermediate"]').getAttribute("aria-pressed");
+    document.querySelector('[data-testid="filter-clear"]').click();
+    await wait();
+    return { before, after, allIntermediate: levels.every((text) => text.includes("Intermediate")), pressed, reset: cards().length, groups };
+  })()`);
+  check(
+    "filters: difficulty narrows the list to that level, and Clear restores it",
+    filtered.after > 0 && filtered.after < filtered.before && filtered.allIntermediate && filtered.pressed === "true" && filtered.reset === filtered.before,
+    `${filtered.before} → ${filtered.after} → ${filtered.reset}`,
+  );
+  check(
+    "biceps and triceps: shown in their own sections",
+    JSON.stringify(filtered.groups) === JSON.stringify(["Biceps", "Triceps"]),
+    filtered.groups.join(", "),
+  );
+
+  await visit("/workouts/no-equipment/legs-glutes", { width: 1280 });
+  const kit = await evaluate(`(async () => {
+    const cards = () => [...document.querySelectorAll('[data-testid="exercise-list"] a[data-testid^="exercise-"]')];
+    document.querySelector('[data-testid="filter-equipment"] button[data-value="household"]').click();
+    await new Promise((r) => setTimeout(r, 150));
+    return cards().map((a) => a.textContent);
+  })()`);
+  check(
+    "no-equipment filter: 'Needs a household item' shows only exercises that name one",
+    kit.length > 0 && kit.every((text) => /Sturdy chair|Sturdy table|Towel/.test(text)),
+    `${kit.length} shown`,
+  );
+
+  // Keyboard: the first card is reachable and shows a visible focus ring.
+  await visit("/workouts/no-equipment/chest", { width: 1280 });
+  const focus = await evaluate(`(() => {
+    const card = document.querySelector('[data-testid="exercise-list"] a[data-testid^="exercise-"]');
+    card.focus();
+    const style = getComputedStyle(card);
+    return { focused: document.activeElement === card, outline: style.outlineStyle, width: style.outlineWidth };
+  })()`);
+  check(
+    "keyboard: an exercise card takes focus and shows a focus outline",
+    focus.focused && focus.outline !== "none" && focus.width !== "0px",
+    `${focus.outline} ${focus.width}`,
+  );
+
+  // Columns: 1 on a small phone, 2 on a tablet, 3 on a wide screen.
+  for (const [width, want] of [[360, 1], [768, 2], [1280, 3]]) {
+    await visit("/workouts/equipment/chest", { width, height: 900 });
+    const layout = await evaluate(`(() => {
+      const cards = [...document.querySelectorAll('[data-testid="exercise-list"] li')];
+      const lefts = new Set(cards.map((li) => Math.round(li.getBoundingClientRect().left)));
+      const off = cards.filter((li) => { const r = li.getBoundingClientRect(); return r.left < -1 || r.right > innerWidth + 1; }).length;
+      return { columns: lefts.size, off, overflow: document.documentElement.scrollWidth - innerWidth };
+    })()`);
+    check(
+      `layout ${width}px: ${want} column${want > 1 ? "s" : ""}, nothing off screen`,
+      layout.columns === want && layout.off === 0 && layout.overflow <= 0,
+      `${layout.columns} columns`,
+    );
+    await screenshot(`redesign-chest-${width}`);
+  }
+
+  // Language: the hero description follows the language switch.
+  await visit("/workouts/equipment/back", { width: 390, height: 844, lang: "hi" });
+  const hiText = await evaluate(`document.querySelector('section[aria-labelledby="category-title"]').innerText`);
+  check("language: the category description is in Hindi", hiText.includes("लैट्स"), hiText.slice(0, 60));
+  await screenshot("redesign-back-390-hi");
+
+  // Back navigation returns to the mode page.
+  await visit("/workouts/no-equipment/abs-core", { width: 390, height: 844 });
+  const back = await evaluate(`document.querySelector('a[href="/workouts/no-equipment"]')?.textContent.trim() ?? ""`);
+  check("back link: points to the mode page", back.length > 0, back);
+  await screenshot("redesign-abs-390");
+  await visit("/workouts/equipment/cardio-conditioning", { width: 1280 });
+  await screenshot("redesign-cardio-1280");
+  await visit("/workouts/equipment/biceps-triceps", { width: 1280 });
+  await screenshot("redesign-arms-1280");
+
   // --- The workouts header's account link -------------------------------
   await visit("/workouts", { width: 1280 });
   check('workouts header: signed out shows "Log in"', (await accountLink()) === "Log in", await accountLink());
