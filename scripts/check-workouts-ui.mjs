@@ -433,6 +433,9 @@ const DRAFT_MARKERS = [
   "Slide your hips off the seat with your knees bent",
   "No load limit is stated on purpose",
   "Proposed as a triceps-focused option",
+  // New drafts awaiting the coach.
+  "Sit on the end of a flat bench with a dumbbell on each thigh",
+  "Kneel on a mat and put your hands on the floor a little wider than your shoulders",
   // Notes for the coach travel with drafts and must stay behind with them.
   "coachReview",
   "Recommended for removal",
@@ -467,6 +470,8 @@ try {
     ["a held exercise", "/workouts/equipment/exercises/barbell-bench-press"],
     ["a held exercise", "/workouts/no-equipment/exercises/superman"],
     ["a held exercise", "/workouts/no-equipment/exercises/chair-dip"],
+    ["a new draft", "/workouts/equipment/exercises/dumbbell-bench-press"],
+    ["a new draft", "/workouts/no-equipment/exercises/knee-push-up"],
     ["an exercise under the other mode", "/workouts/no-equipment/exercises/pull-up"],
     ["an exercise under the other mode", "/workouts/no-equipment/exercises/chin-up"],
     ["a withdrawn exercise", "/workouts/no-equipment/exercises/inverted-table-row"],

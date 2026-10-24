@@ -81,13 +81,34 @@ describe("the real catalogue", () => {
   });
 
   it("holds back the 8 with open safety questions, and shows them nowhere", () => {
-    expect(DRAFT_EXERCISES.map((exercise) => exercise.slug).sort()).toEqual([...HELD].sort());
+    const drafts = DRAFT_EXERCISES.map((exercise) => exercise.slug);
+    expect(HELD.every((slug) => drafts.includes(slug))).toBe(true);
     for (const mode of MODES) {
       for (const slug of HELD) expect(CATALOGUE.find(mode.id, slug)).toBeUndefined();
       expect(CATALOGUE.published(mode.id).some((exercise) => HELD.includes(exercise.slug))).toBe(false);
     }
     expect(CATALOGUE.find("no-equipment", "push-up")?.name).toBe("Push-up");
     expect(CATALOGUE.find("equipment", "pull-up")?.name).toBe("Pull-up");
+  });
+
+  it("keeps every other draft a new exercise awaiting the coach, hidden from clients", () => {
+    const others = DRAFT_EXERCISES.filter((exercise) => !HELD.includes(exercise.slug));
+    expect(others.length).toBeGreaterThan(0);
+    expect(others.every((exercise) => exercise.coachReview?.status === "new")).toBe(true);
+    for (const exercise of others) expect(CATALOGUE.find(exercise.mode, exercise.slug)).toBeUndefined();
+  });
+
+  it("has at most 10 exercises in any category, counting published and drafts", () => {
+    const over: string[] = [];
+    for (const mode of MODES) {
+      for (const category of mode.categories) {
+        const count = EXERCISES.filter(
+          (exercise) => exercise.mode === mode.id && exercise.categories.includes(category.slug),
+        ).length;
+        if (count > 10) over.push(`${mode.id}/${category.slug}: ${count}`);
+      }
+    }
+    expect(over).toEqual([]);
   });
 
   it("keeps review notes off published exercises, in a file that never ships", () => {
