@@ -1,9 +1,17 @@
 import { PUBLISHED_EXERCISES } from "./published";
 import type { CategorySlug, Exercise, WorkoutModeId } from "./types";
 
-/** Clients only ever see exercises the coach has approved. */
+/**
+ * Clients see exercises the coach has approved, and ones the site owner
+ * published ahead of the coach's review. Never drafts.
+ */
 export function isPublished(exercise: Exercise) {
-  return exercise.review === "coach-approved";
+  return exercise.review === "coach-approved" || exercise.review === "published-pending-review";
+}
+
+/** Published before the coach's review: the pages say so. */
+export function isPendingReview(exercise: Exercise) {
+  return exercise.review === "published-pending-review";
 }
 
 /**

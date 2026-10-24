@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CATALOGUE, getMode } from "@mugabe/fitness-content";
+import { CATALOGUE, MODES } from "@mugabe/fitness-content";
 import ExerciseDetail from "@/components/workouts/exercise-detail";
 
 // Only published exercises are built, each under its own mode; a draft, an
 // exercise of the other mode or an unknown slug is a 404.
 export const dynamicParams = false;
 
-export async function generateStaticParams({ params }: { params: { mode: string } }) {
-  const mode = getMode(params.mode);
-
-  return mode ? CATALOGUE.published(mode.id).map((exercise) => ({ slug: exercise.slug })) : [];
+// Returns both segments: /workouts/[mode] is a page, not a layout, so it
+// passes no params down to this route.
+export function generateStaticParams() {
+  return MODES.flatMap((mode) =>
+    CATALOGUE.published(mode.id).map((exercise) => ({ mode: mode.id, slug: exercise.slug })),
+  );
 }
 
 export async function generateMetadata({

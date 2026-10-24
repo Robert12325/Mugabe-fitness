@@ -14,7 +14,7 @@ export {
   getMode,
   isModeId,
 } from "./modes";
-export { CATALOGUE, createCatalogue, isPublished, type Catalogue } from "./catalogue";
+export { CATALOGUE, createCatalogue, isPendingReview, isPublished, type Catalogue } from "./catalogue";
 export { PUBLISHED_EXERCISES } from "./published";
 export {
   DIFFICULTY_NAMES,

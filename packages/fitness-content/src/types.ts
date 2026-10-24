@@ -145,8 +145,12 @@ export type Exercise = {
   /** Slugs of other exercises in the catalogue. */
   alternatives: readonly string[];
   demo: Demonstration;
-  /** Only "coach-approved" exercises are shown to clients. */
-  review: "draft" | "coach-approved";
+  /**
+   * Who has signed it off. Clients see "coach-approved" exercises, and
+   * "published-pending-review" ones that the site owner published before
+   * the coach's review (the pages say so). Never shown: "draft".
+   */
+  review: "draft" | "published-pending-review" | "coach-approved";
   /**
    * For the coach only, never shown to clients: how the technical review
    * left this draft, and what to check before approving it. A draft with

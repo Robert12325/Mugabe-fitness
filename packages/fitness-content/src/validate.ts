@@ -15,7 +15,19 @@ const group = (muscle: Muscle) => SAME_GROUP[muscle] ?? muscle;
  * means it is fit to ship. The tests run this over the real catalogue, so
  * an incomplete or inconsistent exercise fails the build's checks.
  */
-export function validateCatalogue(modes: readonly WorkoutMode[], exercises: readonly Exercise[]): string[] {
+export function validateCatalogue(
+  modes: readonly WorkoutMode[],
+  exercises: readonly Exercise[],
+  options: {
+    /**
+     * Checking only part of the catalogue (the website build sees the
+     * published list alone): an alternative that isn't in this list may be
+     * an unpublished draft, so it is skipped rather than reported. The
+     * tests check everything together without this.
+     */
+    partial?: boolean;
+  } = {},
+): string[] {
   const problems: string[] = [];
   const modeIds = new Set<string>();
 
@@ -92,6 +104,9 @@ export function validateCatalogue(modes: readonly WorkoutMode[], exercises: read
       if (exercise.review === "coach-approved") {
         problems.push(`${label}: an approved exercise can't still carry technical-review notes.`);
       }
+      if (exercise.review === "published-pending-review") {
+        problems.push(`${label}: a published exercise can't carry review notes; they belong in exercises/review-notes.ts.`);
+      }
       if (exercise.coachReview.status !== "new" && exercise.coachReview.changes.length === 0 && exercise.coachReview.check.length === 0) {
         problems.push(`${label}: its review notes say nothing.`);
       }
@@ -123,7 +138,9 @@ export function validateCatalogue(modes: readonly WorkoutMode[], exercises: read
       if (alternative === exercise.slug) {
         problems.push(`Exercise "${exercise.slug}" lists itself as an alternative.`);
       } else if (!match) {
-        problems.push(`Exercise "${exercise.slug}": alternative "${alternative}" is not in the catalogue.`);
+        if (!options.partial) {
+          problems.push(`Exercise "${exercise.slug}": alternative "${alternative}" is not in the catalogue.`);
+        }
       } else if (match.mode !== exercise.mode) {
         // The modes stay separate: a gym exercise is no swap for someone without a gym.
         problems.push(`Exercise "${exercise.slug}": alternative "${alternative}" is in the other mode.`);

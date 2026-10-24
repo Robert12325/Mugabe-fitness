@@ -8,6 +8,7 @@ import {
   formatPrescription,
   formatRest,
   getMode,
+  isPendingReview,
 } from "@mugabe/fitness-content";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -45,6 +46,14 @@ export default function ExerciseScreen() {
       <AppText variant="eyebrow" tone="gold">
         {mode.name} · {exercise.categories.map((slug) => CATEGORY_NAMES[slug]).join(", ")}
       </AppText>
+
+      {isPendingReview(exercise) && (
+        <View style={styles.pending} testID="pending-review" accessibilityRole="text">
+          <AppText variant="small" tone="gold">
+            Not yet reviewed by your coach. The instructions and suggested amounts may change.
+          </AppText>
+        </View>
+      )}
 
       <Card style={styles.demo} testID="exercise-demo">
         <Ionicons name="videocam-outline" size={28} color={colors.gold} />
@@ -123,6 +132,13 @@ export default function ExerciseScreen() {
 }
 
 const styles = StyleSheet.create({
+  pending: {
+    borderWidth: 1,
+    borderColor: "rgba(212,175,55,0.4)",
+    backgroundColor: colors.goldTint,
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
   demo: { alignItems: "center", gap: spacing.sm, paddingVertical: spacing.xxl },
   center: { textAlign: "center" },
   facts: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -spacing.xs },

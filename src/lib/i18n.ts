@@ -601,6 +601,7 @@ const EN = {
   "wk.unit.perSide": "each side",
   "wk.unit.min": "min",
   "wk.unit.sec": "s",
+  "wk.pendingReview": "Not yet reviewed by your coach. The instructions and suggested amounts may change.",
 } as const;
 
 export type StringKey = keyof typeof EN;
@@ -1142,6 +1143,7 @@ const HI: Record<StringKey, string> = {
   "wk.unit.perSide": "हर तरफ़",
   "wk.unit.min": "मिनट",
   "wk.unit.sec": "से.",
+  "wk.pendingReview": "इसे अभी तुम्हारे कोच ने रिव्यू नहीं किया है। निर्देश और सुझाए गए सेट-रेप्स बदल सकते हैं।",
 };
 
 /** The same Hindi, written the way people type it on a phone. */
@@ -1682,6 +1684,7 @@ const HINGLISH: Record<StringKey, string> = {
   "wk.unit.perSide": "har side",
   "wk.unit.min": "min",
   "wk.unit.sec": "s",
+  "wk.pendingReview": "Ise abhi tumhare coach ne review nahi kiya hai. Instructions aur suggested sets-reps badal sakte hain.",
 };
 
 const DICTIONARIES: Record<Lang, Record<StringKey, string>> = {

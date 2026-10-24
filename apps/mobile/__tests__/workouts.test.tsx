@@ -4,9 +4,9 @@ import { renderRouter, testRouter } from "expo-router/testing-library";
 
 /**
  * The workout library's two modes and their categories, and the Workouts
- * tab that shows them, with the real catalogue. Every exercise in it is
- * still a draft, so clients see none yet; the exercise screens themselves
- * are tested with approved stand-ins in workout-exercises.test.tsx.
+ * tab that shows them, with the real catalogue: 44 exercises published
+ * ahead of the coach's review, 8 held back. The exercise screens are tested
+ * in detail with stand-ins in workout-exercises.test.tsx.
  */
 
 jest.mock("expo-secure-store", () => ({
@@ -65,8 +65,9 @@ describe("shared catalogue — modes and categories", () => {
     expect(getCategory("no-equipment", "arms")?.name).toBe("Arms");
   });
 
-  it("shows clients no exercise until the coach approves one", () => {
-    for (const mode of MODES) expect(CATALOGUE.published(mode.id)).toEqual([]);
+  it("shows clients the published exercises in both modes", () => {
+    const total = MODES.reduce((sum, mode) => sum + CATALOGUE.published(mode.id).length, 0);
+    expect(total).toBe(44);
   });
 });
 
@@ -88,7 +89,9 @@ describe("Workouts tab", () => {
     expect(await screen.findByTestId("screen-workout-mode")).toBeTruthy();
     expect(screen.getByTestId("category-biceps-triceps")).toBeTruthy();
     expect(screen.queryByTestId("category-arms")).toBeNull();
-    expect(screen.getAllByText("Exercises coming soon")).toHaveLength(8);
+    // Every equipment category has published exercises; held ones aren't counted.
+    expect(screen.queryAllByText("Exercises coming soon")).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Chest, 2 exercises" })).toBeTruthy();
 
     // Awaited, so the navigation settles before the next test renders.
     await act(async () => {
@@ -109,21 +112,27 @@ describe("Workouts tab", () => {
     expect(screen.getByText(/needs a sturdy chair, table or towel says so/)).toBeTruthy();
   });
 
-  it("opens a category and says honestly that nothing is published there yet", async () => {
+  it("lists a category's published exercises, without the held or removed ones", async () => {
     await renderRouter(APP_DIR, { initialUrl: "/workouts/no-equipment" });
 
     await fireEvent.press(await screen.findByTestId("category-back"));
     await waitFor(() => expect(screen).toHavePathname("/workouts/no-equipment/back"));
 
-    expect(await screen.findByTestId("exercises-empty")).toBeTruthy();
-    expect(screen.getByText("No exercises published here yet")).toBeTruthy();
-    // The drafts written for Back exist, but none of them shows.
-    expect(screen.queryByText("Pull-up")).toBeNull();
-    expect(screen.queryByTestId("exercise-pull-up")).toBeNull();
+    expect(await screen.findByTestId("exercise-prone-y-t-raise")).toBeTruthy();
+    expect(screen.getByTestId("exercise-reverse-snow-angel")).toBeTruthy();
+    expect(screen.queryByTestId("exercise-superman")).toBeNull(); // held
+    expect(screen.queryByTestId("exercise-inverted-table-row")).toBeNull(); // removed
   });
 
-  it("won't open a draft exercise by its address", async () => {
-    await renderRouter(APP_DIR, { initialUrl: "/workouts/no-equipment/exercises/pull-up" });
+  it("says on a published exercise that the coach hasn't reviewed it yet", async () => {
+    await renderRouter(APP_DIR, { initialUrl: "/workouts/no-equipment/exercises/push-up" });
+
+    expect(await screen.findByTestId("pending-review")).toBeTruthy();
+    expect(screen.getByText(/Not yet reviewed by your coach/)).toBeTruthy();
+  });
+
+  it("won't open a held exercise by its address", async () => {
+    await renderRouter(APP_DIR, { initialUrl: "/workouts/no-equipment/exercises/superman" });
 
     expect(await screen.findByText("Exercise not found")).toBeTruthy();
     expect(screen.queryByText("How to do it")).toBeNull();

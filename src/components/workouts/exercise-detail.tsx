@@ -6,6 +6,7 @@ import {
   equipmentNames,
   formatPrescription,
   formatRest,
+  isPendingReview,
   type Exercise,
 } from "@mugabe/fitness-content";
 import Icon from "@/components/icons";
@@ -57,6 +58,15 @@ export default function ExerciseDetail({
       <h1 lang="en" className="mt-3 text-4xl font-black uppercase italic leading-[0.95] tracking-tight sm:text-5xl">
         {exercise.name}
       </h1>
+
+      {isPendingReview(exercise) && (
+        <p
+          data-testid="pending-review"
+          className="mt-5 max-w-2xl rounded-xl border border-[#e0b54a]/40 bg-[#e0b54a]/10 px-4 py-3 text-sm text-[#f3c969]"
+        >
+          {t("wk.pendingReview")}
+        </p>
+      )}
 
       {lang !== "en" && <p className="mt-4 text-sm text-white/50">{t("wk.englishOnly")}</p>}
 

@@ -17,9 +17,11 @@ jest.mock("@mugabe/fitness-content", () => {
   const actual = jest.requireActual("@mugabe/fitness-content");
   const { DRAFT_EXERCISES } = jest.requireActual("@mugabe/fitness-content/exercises");
   const approved = new Set(["push-up", "incline-push-up", "chair-dip", "barbell-bench-press", "pull-up"]);
-  const exercises = DRAFT_EXERCISES.map((exercise: { slug: string }) =>
-    approved.has(exercise.slug) ? { ...exercise, review: "coach-approved" } : exercise,
-  );
+  // Every real exercise, published or not, as a draft unless approved here.
+  const exercises = [...actual.PUBLISHED_EXERCISES, ...DRAFT_EXERCISES].map((exercise: { slug: string }) => ({
+    ...exercise,
+    review: approved.has(exercise.slug) ? "coach-approved" : "draft",
+  }));
   // The other drafts go in too, still as drafts: the catalogue must hide them.
   return { ...actual, CATALOGUE: actual.createCatalogue(exercises) };
 });

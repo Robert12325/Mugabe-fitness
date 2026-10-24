@@ -7,7 +7,9 @@ import { validateCatalogue } from "@mugabe/fitness-content/validate";
  * never ship to visitors. Drafts are checked by the mobile app's tests.
  */
 export function assertPublishedCatalogue(exercises: readonly Exercise[] = PUBLISHED_EXERCISES) {
-  const problems = validateCatalogue(MODES, exercises);
+  // The build sees only the published list; alternatives that are still
+  // drafts are hidden on the pages and checked in full by the tests.
+  const problems = validateCatalogue(MODES, exercises, { partial: true });
 
   if (problems.length > 0) {
     throw new Error(`The published exercise catalogue has problems:\n- ${problems.join("\n- ")}`);

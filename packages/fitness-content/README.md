@@ -20,12 +20,13 @@ The exercise catalogue shared by the website (`src/`) and the mobile app
 | `src/index.ts` | The entry point the website and app import |
 | `src/types.ts` | Modes, categories, exercises, equipment, muscles |
 | `src/modes.ts` | The two modes, their eight categories each, category and equipment names |
-| `src/published.ts` | **The exercises clients see.** Empty until the coach approves some |
+| `src/published.ts` | **The exercises clients see:** coach-approved, or published before the coach's review |
 | `src/catalogue.ts` | `CATALOGUE`: every list and lookup the pages use |
 | `src/format.ts` | "3 × 8–12 reps", "1 min 30 s", difficulty and muscle names |
 | `src/validate.ts` | `validateCatalogue()`: every problem as a sentence. Not in the entry point |
 | `src/exercises/` | **Drafts** for the coach to review, one file per mode |
 | `src/exercises/withdrawn.ts` | Exercises taken out of the proposed catalogue, kept on record only |
+| `src/exercises/review-notes.ts` | Review notes for exercises published before the coach's review; never shipped |
 
 ## Drafts and publishing
 
@@ -35,10 +36,20 @@ Drafts are kept out of everything clients receive, not just hidden on screen:
   imports it, so drafts are not in the website's pages or scripts, or in
   the app's bundle. Tests and review tools import them as
   `@mugabe/fitness-content/exercises`.
-- `src/published.ts` holds what clients see. **To publish an exercise once
-  the coach approves it,** move its entry there and set
-  `review: "coach-approved"`. `CATALOGUE` also filters on that field, as a
-  second guard.
+- `src/published.ts` holds what clients see, in two kinds:
+  - `review: "coach-approved"`: the coach approved it and confirmed its
+    amounts (`amountsConfirmed: true`).
+  - `review: "published-pending-review"`: published by the site owner
+    before the coach's review. Every exercise page says it is not yet
+    reviewed by the coach. It is not a coach approval: when the coach's
+    decisions come in, these entries are updated or removed. Their review
+    notes live in `src/exercises/review-notes.ts`, never on the entry.
+
+  `CATALOGUE` only shows those two values, as a second guard. **To publish a
+  draft once the coach approves it,** move its entry here with
+  `review: "coach-approved"` and `amountsConfirmed: true`.
+- Held back now: the 8 exercises with open safety questions stay drafts
+  until the coach answers them.
 - The website builds pages only for published exercises, so a draft's
   address is a 404. The app shows "Exercise not found" for it.
 - `src/exercises/withdrawn.ts` holds exercises removed during review (now

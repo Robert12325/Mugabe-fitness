@@ -422,14 +422,17 @@ const CATEGORIES = {
   "no-equipment": ["chest", "back", "shoulders", "arms", "legs-glutes", "abs-core", "full-body", "cardio-conditioning"],
 };
 
-// Text that exists only in draft exercises. None of it may reach a visitor:
-// not on a page, and not in any script the page loads.
+// Text that exists only in unpublished exercises (the held drafts) and in
+// review notes. None of it may reach a visitor: not on a page, and not in
+// any script the page loads.
 const DRAFT_MARKERS = [
   'review:"draft"',
   "review: \"draft\"",
   "Lie on the bench with your eyes under the bar",
-  "maximum user weight covers your body weight",
-  "keeping your elbows tucked close to your sides",
+  "Squeeze your glutes and lift your arms, chest and legs",
+  "Slide your hips off the seat with your knees bent",
+  "No load limit is stated on purpose",
+  "Proposed as a triceps-focused option",
   // Notes for the coach travel with drafts and must stay behind with them.
   "coachReview",
   "Recommended for removal",
@@ -461,13 +464,12 @@ try {
     ["a category from the other mode", "/workouts/equipment/arms"],
     ["an unknown category", "/workouts/equipment/neck"],
     ["a category under an unknown mode", "/workouts/bodyweight/chest"],
-    ["a draft exercise", "/workouts/no-equipment/exercises/push-up"],
-    ["a draft exercise", "/workouts/no-equipment/exercises/pull-up"],
-    ["a draft exercise", "/workouts/equipment/exercises/barbell-bench-press"],
-    ["a draft exercise", "/workouts/equipment/exercises/pull-up"],
+    ["a held exercise", "/workouts/equipment/exercises/barbell-bench-press"],
+    ["a held exercise", "/workouts/no-equipment/exercises/superman"],
+    ["a held exercise", "/workouts/no-equipment/exercises/chair-dip"],
+    ["an exercise under the other mode", "/workouts/no-equipment/exercises/pull-up"],
     ["an exercise under the other mode", "/workouts/no-equipment/exercises/chin-up"],
     ["a withdrawn exercise", "/workouts/no-equipment/exercises/inverted-table-row"],
-    ["a draft exercise", "/workouts/no-equipment/exercises/close-grip-push-up"],
     ["an exercise under the other mode", "/workouts/equipment/exercises/push-up"],
     ["an unknown exercise", "/workouts/equipment/exercises/nope"],
   ]) {
@@ -486,22 +488,42 @@ try {
     );
   }
 
+  // --- Published exercises -------------------------------------------------
+  for (const pathname of [
+    "/workouts/no-equipment/exercises/push-up",
+    "/workouts/equipment/exercises/pull-up",
+    "/workouts/no-equipment/exercises/close-grip-push-up",
+  ]) {
+    check(`published exercise opens: ${pathname}`, (await status(pathname)) === 200, String(await status(pathname)));
+  }
+
   // --- Category pages ------------------------------------------------------
   for (const lang of LANGS) {
     await visit("/workouts/no-equipment/back", { width: 390, height: 844, lang });
     const page = await evaluate(`(() => ({
-      empty: !!document.querySelector('[data-testid="exercises-empty"]'),
-      list: !!document.querySelector('[data-testid="exercise-list"]'),
+      links: [...document.querySelectorAll('[data-testid^="exercise-"]')].map((a) => a.getAttribute("data-testid")),
       heading: document.querySelector("h1")?.textContent.trim(),
-      text: document.body.innerText,
     }))()`);
+    const want = ["exercise-list", "exercise-prone-y-t-raise", "exercise-reverse-snow-angel"];
     check(
-      `category page ${lang}: says nothing is published yet, and shows no exercise`,
-      page.empty && !page.list && !page.text.includes("Pull-up") && !page.text.includes("Inverted table row"),
-      page.heading,
+      `category page ${lang}: lists the published exercises, not the held or removed ones`,
+      JSON.stringify(page.links) === JSON.stringify(want),
+      `${page.heading}: ${page.links.join(", ")}`,
     );
     if (lang === "en") await screenshot("category-no-equipment-back-390");
     if (lang === "hi") await screenshot("category-no-equipment-back-390-hi");
+  }
+
+  const PENDING = {
+    en: "Not yet reviewed by your coach.",
+    hi: "इसे अभी तुम्हारे कोच ने रिव्यू नहीं किया है।",
+    hinglish: "Ise abhi tumhare coach ne review nahi kiya hai.",
+  };
+  for (const lang of LANGS) {
+    await visit("/workouts/no-equipment/exercises/push-up", { width: 390, height: 844, lang });
+    const note = await evaluate(`document.querySelector('[data-testid="pending-review"]')?.textContent.trim() ?? ""`);
+    check(`exercise page ${lang}: says it is awaiting the coach's review`, note.startsWith(PENDING[lang]), note);
+    if (lang === "en") await screenshot("exercise-push-up-390");
   }
 
   await visit("/workouts/equipment", { width: 1280 });

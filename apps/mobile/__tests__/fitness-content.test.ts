@@ -10,6 +10,7 @@ import {
   type Exercise,
 } from "@mugabe/fitness-content";
 import { DRAFT_EXERCISES } from "@mugabe/fitness-content/exercises";
+import { PENDING_REVIEW_NOTES } from "@mugabe/fitness-content/exercises/review-notes";
 import { WITHDRAWN_EXERCISES } from "@mugabe/fitness-content/exercises/withdrawn";
 import { validateCatalogue } from "@mugabe/fitness-content/validate";
 
@@ -24,6 +25,18 @@ import { validateCatalogue } from "@mugabe/fitness-content/validate";
 
 const EXERCISES = [...PUBLISHED_EXERCISES, ...DRAFT_EXERCISES];
 
+// Held back from early publishing until the coach answers their safety questions.
+const HELD = [
+  "barbell-bench-press",
+  "barbell-back-squat",
+  "romanian-deadlift",
+  "hanging-knee-raise",
+  "kettlebell-swing",
+  "superman",
+  "elevated-pike-push-up",
+  "chair-dip",
+];
+
 const approve = (exercise: Exercise): Exercise => ({ ...exercise, review: "coach-approved" });
 const bySlug = (slug: string) => {
   const exercise = EXERCISES.find((candidate) => candidate.slug === slug);
@@ -37,8 +50,8 @@ describe("the real catalogue", () => {
     expect(validateCatalogue(MODES, [...EXERCISES, ...WITHDRAWN_EXERCISES])).toEqual([]);
   });
 
-  it("keeps every draft's sets, reps and rest as a draft recommendation", () => {
-    expect(DRAFT_EXERCISES.every((exercise) => exercise.amountsConfirmed === undefined)).toBe(true);
+  it("keeps every sets, reps and rest figure a draft recommendation: none is confirmed yet", () => {
+    expect(EXERCISES.every((exercise) => exercise.amountsConfirmed === undefined)).toBe(true);
   });
 
   it("has at least three distinct drafts in every category of both modes", () => {
@@ -56,15 +69,39 @@ describe("the real catalogue", () => {
 
   it("keeps drafts and published exercises apart, each marked as what it is", () => {
     expect(DRAFT_EXERCISES.every((exercise) => exercise.review === "draft")).toBe(true);
-    expect(PUBLISHED_EXERCISES.every((exercise) => exercise.review === "coach-approved")).toBe(true);
+    expect(
+      PUBLISHED_EXERCISES.every((exercise) => ["coach-approved", "published-pending-review"].includes(exercise.review)),
+    ).toBe(true);
   });
 
-  it("has nothing published yet: the coach hasn't approved any, so clients see none", () => {
-    expect(PUBLISHED_EXERCISES).toEqual([]);
+  it("publishes 44 ahead of the coach's review, none marked as coach-approved", () => {
+    expect(PUBLISHED_EXERCISES).toHaveLength(44);
+    expect(PUBLISHED_EXERCISES.every((exercise) => exercise.review === "published-pending-review")).toBe(true);
+    expect(PUBLISHED_EXERCISES.some((exercise) => exercise.review === "coach-approved")).toBe(false);
+  });
+
+  it("holds back the 8 with open safety questions, and shows them nowhere", () => {
+    expect(DRAFT_EXERCISES.map((exercise) => exercise.slug).sort()).toEqual([...HELD].sort());
     for (const mode of MODES) {
-      expect(CATALOGUE.published(mode.id)).toEqual([]);
-      for (const exercise of DRAFT_EXERCISES) expect(CATALOGUE.find(mode.id, exercise.slug)).toBeUndefined();
+      for (const slug of HELD) expect(CATALOGUE.find(mode.id, slug)).toBeUndefined();
+      expect(CATALOGUE.published(mode.id).some((exercise) => HELD.includes(exercise.slug))).toBe(false);
     }
+    expect(CATALOGUE.find("no-equipment", "push-up")?.name).toBe("Push-up");
+    expect(CATALOGUE.find("equipment", "pull-up")?.name).toBe("Pull-up");
+  });
+
+  it("keeps review notes off published exercises, in a file that never ships", () => {
+    expect(PUBLISHED_EXERCISES.some((exercise) => exercise.coachReview)).toBe(false);
+    const published = new Set(PUBLISHED_EXERCISES.map((exercise) => exercise.slug));
+    expect(Object.keys(PENDING_REVIEW_NOTES).every((slug) => published.has(slug))).toBe(true);
+    expect(PENDING_REVIEW_NOTES["pull-up"]?.check.join(" ")).toMatch(/door-frame bars/);
+    expect(Object.keys(entryPoint)).not.toContain("PENDING_REVIEW_NOTES");
+  });
+
+  it("hides held exercises when a published one lists them as alternatives", () => {
+    const crunch = CATALOGUE.find("equipment", "cable-crunch");
+    expect(crunch?.alternatives).toEqual(["hanging-knee-raise"]);
+    expect(CATALOGUE.alternativesOf(crunch!)).toEqual([]);
   });
 
   it("doesn't hand drafts, withdrawn exercises or the checks to the website or app", () => {
@@ -130,16 +167,16 @@ describe("the real catalogue", () => {
     expect(bySlug("prone-y-t-raise").tips.join(" ")).toMatch(/one Y lift plus one T lift is one rep/);
   });
 
-  it("proposes the close-grip push-up for Arms, flagged for the coach", () => {
+  it("has the close-grip push-up in Arms, published ahead of review and flagged for the coach", () => {
     expect(bySlug("close-grip-push-up")).toMatchObject({
       mode: "no-equipment",
       categories: ["arms"],
       primaryMuscles: ["triceps"],
       equipment: [],
-      review: "draft",
+      review: "published-pending-review",
     });
-    expect(bySlug("close-grip-push-up").coachReview?.status).toBe("new");
-    expect(bySlug("close-grip-push-up").coachReview?.check.join(" ")).toMatch(/Diamond push-up/);
+    expect(PENDING_REVIEW_NOTES["close-grip-push-up"]?.status).toBe("new");
+    expect(PENDING_REVIEW_NOTES["close-grip-push-up"]?.check.join(" ")).toMatch(/Diamond push-up/);
   });
 
   it("lists a shared exercise once, under each of its categories", () => {
@@ -156,7 +193,7 @@ describe("the real catalogue", () => {
 describe("what clients may see", () => {
   const pushUp = approve(bySlug("push-up"));
   const incline = approve(bySlug("incline-push-up"));
-  const decline = bySlug("decline-push-up"); // still a draft
+  const decline: Exercise = { ...bySlug("decline-push-up"), review: "draft" }; // a draft here
   const bench = approve(bySlug("barbell-bench-press"));
   const catalogue = createCatalogue([pushUp, incline, decline, bench]);
 
@@ -244,6 +281,23 @@ describe("checks on incomplete or inconsistent exercises", () => {
     expect(check(approvedWithNotes)).toEqual([
       'Exercise "superman": an approved exercise can\'t still carry technical-review notes.',
     ]);
+  });
+
+  it("won't let a published exercise carry review notes", () => {
+    const withNotes = { ...bySlug("push-up"), alternatives: [], coachReview: { status: "changed" as const, changes: ["x"], check: [] } };
+    expect(check(withNotes)).toEqual([
+      'Exercise "push-up": a published exercise can\'t carry review notes; they belong in exercises/review-notes.ts.',
+    ]);
+  });
+
+  it("lets the build check the published list alone, without reporting draft alternatives", () => {
+    // Cable crunch lists the held Hanging knee raise.
+    const crunch = bySlug("cable-crunch");
+    expect(validateCatalogue(MODES, [crunch])).toEqual([
+      'Exercise "cable-crunch": alternative "hanging-knee-raise" is not in the catalogue.',
+    ]);
+    expect(validateCatalogue(MODES, [crunch], { partial: true })).toEqual([]);
+    expect(validateCatalogue(MODES, PUBLISHED_EXERCISES, { partial: true })).toEqual([]);
   });
 
   it("won't let an exercise be approved before the coach confirms its amounts", () => {
