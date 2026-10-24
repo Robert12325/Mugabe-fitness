@@ -3,7 +3,9 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@mugabe/fitness-content": ["../../packages/fitness-content/src/index.ts"],
+      "@mugabe/fitness-content/*": ["../../packages/fitness-content/src/*"]
     },
     // TypeScript 6 no longer loads every @types package by default.
     "types": ["jest"]

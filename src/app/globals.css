@@ -4,6 +4,10 @@
    automatic scan would read class-like words from it into the site's CSS. */
 @source not "../../apps";
 
+/* Likewise the shared exercise catalogue: its words ("table", "block") are
+   content, not classes. The site's own workout pages live in src/. */
+@source not "../../packages";
+
 :root {
   --brand-gold: #d4af37;
   --brand-gold-light: #e7c65c;

@@ -79,8 +79,10 @@ export default function Navbar() {
           </span>
         </a>
 
-        {/* Desktop navigation */}
-        <div className="hidden items-center gap-8 lg:flex xl:gap-11">
+        {/* Desktop navigation, from 1280px: below that the full bar no longer
+            fits (measured in scripts/check-workouts-ui.mjs), so the menu
+            button takes over. */}
+        <div className="hidden items-center gap-6 xl:flex 2xl:gap-11">
           {links.map((link) => {
             const current = active === link.id;
 
@@ -104,21 +106,29 @@ export default function Navbar() {
               </a>
             );
           })}
+
+          {/* A page of its own, not a section of this one. */}
+          <Link
+            href="/workouts"
+            className="py-2 text-[15px] font-medium text-white/75 transition hover:text-white"
+          >
+            {t("nav.workouts")}
+          </Link>
         </div>
 
-        <div className="hidden items-center gap-5 lg:flex">
+        <div className="hidden items-center gap-5 xl:flex">
           <LanguageSwitch />
 
           <Link
             href="/account"
-            className="max-w-[9rem] truncate text-[15px] font-medium text-white/75 transition hover:text-white"
+            className="max-w-[7rem] truncate text-[15px] font-medium text-white/75 transition hover:text-white 2xl:max-w-[9rem]"
           >
             {accountLabel}
           </Link>
 
           <a
             href="#programs"
-            className="group inline-flex items-center gap-2.5 rounded-full bg-[#f5c518] px-7 py-3.5 text-[15px] font-bold text-black transition hover:bg-[#ffd84a]"
+            className="group inline-flex items-center gap-2.5 whitespace-nowrap rounded-full bg-[#f5c518] px-7 py-3.5 text-[15px] font-bold text-black transition hover:bg-[#ffd84a]"
           >
             {t("nav.start")}
             <ArrowIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -131,7 +141,7 @@ export default function Navbar() {
           aria-label={open ? t("nav.close") : t("nav.open")}
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
-          className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white transition hover:border-[#f5c518] lg:hidden"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white transition hover:border-[#f5c518] xl:hidden"
         >
           <span className="text-xl leading-none">{open ? "×" : "☰"}</span>
         </button>
@@ -139,8 +149,8 @@ export default function Navbar() {
 
       {/* Mobile navigation */}
       <div
-        className={`overflow-hidden border-t border-white/10 bg-black transition-all duration-300 lg:hidden ${
-          open ? "max-h-[30rem] opacity-100" : "max-h-0 border-t-0 opacity-0"
+        className={`overflow-hidden border-t border-white/10 bg-black transition-all duration-300 xl:hidden ${
+          open ? "max-h-[40rem] opacity-100" : "max-h-0 border-t-0 opacity-0"
         }`}
       >
         <div className="flex flex-col px-5 py-4 sm:px-6">
@@ -160,6 +170,14 @@ export default function Navbar() {
               )}
             </a>
           ))}
+
+          <Link
+            href="/workouts"
+            onClick={closeMenu}
+            className="border-b border-white/10 py-4 text-sm font-semibold text-white/75 transition hover:text-white"
+          >
+            {t("nav.workouts")}
+          </Link>
 
           <Link
             href="/account"

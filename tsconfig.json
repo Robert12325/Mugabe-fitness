@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@mugabe/fitness-content": ["./packages/fitness-content/src/index.ts"],
+      "@mugabe/fitness-content/*": ["./packages/fitness-content/src/*"]
     }
   },
   "include": [

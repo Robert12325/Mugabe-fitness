@@ -3,13 +3,14 @@
 The standalone iOS and Android app for Mugabe Fitness, built with Expo
 (SDK 58), React Native and TypeScript, using Expo Router for navigation.
 
-It lives beside the website and shares nothing with its build: its own
-`package.json`, lockfile and `node_modules`. The website at the repository
-root is unchanged; its type check and lint simply skip `apps/`.
+It lives beside the website and has its own `package.json`, lockfile and
+`node_modules`; the website's type check and lint skip `apps/`. The one
+thing it shares is the exercise catalogue in `../../packages/fitness-content`
+(see Workouts below).
 
 This is the **foundation**: branding, navigation, and sign-in against the
-existing backend. Workouts, the full program view and progress tracking are
-placeholders for later phases.
+existing backend, plus the two workout modes. The full program view and
+progress tracking are placeholders for later phases.
 
 ## Requirements
 
@@ -62,7 +63,7 @@ Restart with `npx expo start --clear` after changing `.env`.
 ```sh
 npm run typecheck      # TypeScript
 npm run lint           # ESLint (eslint-config-expo)
-npm test               # Jest (jest-expo): config, API client, sessions, navigation
+npm test               # Jest (jest-expo): config, API client, sessions, navigation, workouts, catalogue
 npm run doctor         # Expo's dependency and config health check
 ```
 
@@ -105,12 +106,41 @@ The app uses the website's existing account routes, unchanged:
   does not unlock premium app content; that will need its own server-side
   entitlement check.
 
+## Workouts
+
+The Workouts tab shows two modes, **Workouts with Equipment** and
+**Workouts without Equipment**, each with eight body-part categories, then
+a category's exercises and each exercise's instructions:
+
+| Screen | Route |
+| --- | --- |
+| Choose a mode | `/workouts` |
+| A mode's body parts | `/workouts/[mode]` |
+| A body part's exercises | `/workouts/[mode]/[category]` |
+| One exercise | `/workouts/[mode]/exercises/[slug]` |
+
+- The content comes from `packages/fitness-content`, which the website's
+  `/workouts` pages also use. Metro reads it through `watchFolders` (and
+  finds Babel's helpers for it through `resolver.nodeModulesPaths`) in
+  `metro.config.js`; the `@mugabe/fitness-content` alias is in
+  `tsconfig.json` and in Jest's `moduleNameMapper`.
+- **Only coach-approved exercises appear.** The written drafts aren't in
+  the app's bundle at all (see the package's README), so until the coach
+  approves some, every category says "No exercises published here yet". A
+  link to a draft shows "Exercise not found".
+- `__tests__/workout-exercises.test.tsx` checks the exercise screens with a
+  few drafts marked approved, since the real catalogue shows none yet.
+- The catalogue is free and needs no sign-in. Premium content, if it comes,
+  needs its own server-side subscription. A coaching membership does not
+  unlock it.
+
 ## Project layout
 
 ```
 src/
   app/            Expo Router routes (every file here is a screen)
     (tabs)/       Home, Workouts, My Program, Progress, Profile
+      workouts/   stack: mode → body part → exercise
     sign-in.tsx   modal
     register.tsx  modal
   api/            backend client and account routes
