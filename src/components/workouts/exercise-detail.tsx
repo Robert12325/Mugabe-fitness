@@ -8,8 +8,10 @@ import {
   formatRest,
   isPendingReview,
   type Exercise,
+  type VideoSources,
 } from "@mugabe/fitness-content";
 import Icon from "@/components/icons";
+import ExerciseVideo from "@/components/workouts/exercise-video";
 import { CATEGORY_TEXT, DIFFICULTY_TEXT, MODE_TEXT, formatWords } from "@/components/workouts/labels";
 import { useLang, useT, type StringKey } from "@/lib/i18n";
 
@@ -21,9 +23,14 @@ import { useLang, useT, type StringKey } from "@/lib/i18n";
 export default function ExerciseDetail({
   exercise,
   alternatives,
+  video = null,
+  videoNotice,
 }: {
   exercise: Exercise;
   alternatives: readonly Pick<Exercise, "slug" | "name">[];
+  /** The reviewed demonstration clip; without one, "Demonstration coming soon". */
+  video?: VideoSources | null;
+  videoNotice?: string;
 }) {
   const t = useT();
   const lang = useLang();
@@ -70,16 +77,20 @@ export default function ExerciseDetail({
 
       {lang !== "en" && <p className="mt-4 text-sm text-white/50">{t("wk.englishOnly")}</p>}
 
-      <div
-        data-testid="exercise-demo"
-        className="mt-8 flex flex-col items-center gap-2 rounded-2xl border border-[#e0b54a]/30 bg-[#100d05] px-6 py-10 text-center"
-      >
-        <Icon name="video" className="h-7 w-7 text-[#f3c969]" />
-        <p className="font-bold">{t("wk.demoSoon")}</p>
-        <p className="text-sm text-white/60">
-          {exercise.demo.kind === "diagram" ? <span lang="en">{exercise.demo.alt}</span> : t("wk.demoNote")}
-        </p>
-      </div>
+      {video ? (
+        <ExerciseVideo sources={video} label={exercise.name} notice={videoNotice} />
+      ) : (
+        <div
+          data-testid="exercise-demo"
+          className="mt-8 flex flex-col items-center gap-2 rounded-2xl border border-[#e0b54a]/30 bg-[#100d05] px-6 py-10 text-center"
+        >
+          <Icon name="video" className="h-7 w-7 text-[#f3c969]" />
+          <p className="font-bold">{t("wk.demoSoon")}</p>
+          <p className="text-sm text-white/60">
+            {exercise.demo.kind === "diagram" ? <span lang="en">{exercise.demo.alt}</span> : t("wk.demoNote")}
+          </p>
+        </div>
+      )}
 
       <dl className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         {facts.map(([label, value, english]) => (

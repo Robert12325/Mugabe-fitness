@@ -1,15 +1,19 @@
-import { MODES, PUBLISHED_EXERCISES, type Exercise } from "@mugabe/fitness-content";
-import { validateCatalogue } from "@mugabe/fitness-content/validate";
+import { EXERCISE_VIDEOS, MODES, PUBLISHED_EXERCISES, type Exercise, type ExerciseVideo } from "@mugabe/fitness-content";
+import { validateCatalogue, validateVideos } from "@mugabe/fitness-content/validate";
 
 /**
- * Fails the website build if the published catalogue breaks any rule.
- * Called while pages are generated, on the server only, so the checks
- * never ship to visitors. Drafts are checked by the mobile app's tests.
+ * Fails the website build if the published catalogue, or its list of
+ * demonstration videos, breaks any rule. Called while pages are generated,
+ * on the server only, so the checks never ship to visitors. Drafts are
+ * checked by the mobile app's tests.
  */
-export function assertPublishedCatalogue(exercises: readonly Exercise[] = PUBLISHED_EXERCISES) {
+export function assertPublishedCatalogue(
+  exercises: readonly Exercise[] = PUBLISHED_EXERCISES,
+  videos: readonly ExerciseVideo[] = EXERCISE_VIDEOS,
+) {
   // The build sees only the published list; alternatives that are still
   // drafts are hidden on the pages and checked in full by the tests.
-  const problems = validateCatalogue(MODES, exercises, { partial: true });
+  const problems = [...validateCatalogue(MODES, exercises, { partial: true }), ...validateVideos(videos, exercises)];
 
   if (problems.length > 0) {
     throw new Error(`The published exercise catalogue has problems:\n- ${problems.join("\n- ")}`);

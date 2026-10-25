@@ -2,17 +2,22 @@ import * as entryPoint from "@mugabe/fitness-content";
 import {
   CATALOGUE,
   EQUIPMENT,
+  EXERCISE_VIDEOS,
   MODES,
   PUBLISHED_EXERCISES,
+  VIDEO_PRESETS,
   createCatalogue,
   formatPrescription,
   formatRest,
+  videoFor,
+  videoSources,
   type Exercise,
+  type ExerciseVideo,
 } from "@mugabe/fitness-content";
 import { DRAFT_EXERCISES } from "@mugabe/fitness-content/exercises";
 import { PENDING_REVIEW_NOTES } from "@mugabe/fitness-content/exercises/review-notes";
 import { WITHDRAWN_EXERCISES } from "@mugabe/fitness-content/exercises/withdrawn";
-import { validateCatalogue } from "@mugabe/fitness-content/validate";
+import { validateCatalogue, validateVideos } from "@mugabe/fitness-content/validate";
 
 /**
  * The shared exercise catalogue on its own: the real content, what clients
@@ -126,6 +131,7 @@ describe("the real catalogue", () => {
     expect(Object.keys(entryPoint)).not.toContain("WITHDRAWN_EXERCISES");
     expect(Object.keys(entryPoint)).not.toContain("EXERCISES");
     expect(Object.keys(entryPoint)).not.toContain("validateCatalogue");
+    expect(Object.keys(entryPoint)).not.toContain("validateVideos");
   });
 
   it("allows only household items in the no-equipment mode, and names them", () => {
@@ -373,5 +379,111 @@ describe("how amounts read", () => {
     const words = { reps: "रेप्स", seconds: "सेकंड", perSide: "हर तरफ़", minutes: "मिनट", secondsShort: "से." };
     expect(formatPrescription({ kind: "reps", sets: 3, reps: [8, 12], perSide: true }, words)).toBe("3 × 8–12 रेप्स हर तरफ़");
     expect(formatRest(90, words)).toBe("1 मिनट 30 से.");
+  });
+});
+
+describe("demonstration videos", () => {
+  // A made-up entry for these tests only; the real list stays empty until
+  // real footage has been recorded and reviewed.
+  const clip: ExerciseVideo = {
+    exercise: "bodyweight-squat",
+    publicId: "tests/example-clip",
+    angle: "front-side",
+    durationSeconds: 12,
+    width: 720,
+    height: 1280,
+    reviewedOn: "2026-10-24",
+  };
+  const check = (...videos: ExerciseVideo[]) => validateVideos(videos, PUBLISHED_EXERCISES);
+  const expectOneProblem = (problems: string[], problem: string) => {
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain(problem);
+  };
+
+  it("has no clips yet: none is recorded and reviewed", () => {
+    expect(EXERCISE_VIDEOS).toEqual([]);
+    expect(validateVideos(EXERCISE_VIDEOS, PUBLISHED_EXERCISES)).toEqual([]);
+    expect(videoFor("push-up")).toBeUndefined();
+  });
+
+  it("accepts a complete entry for a published exercise", () => {
+    expect(check(clip)).toEqual([]);
+    expect(check({ ...clip, publicId: "mugabe-fitness/exercises/v-sit-2" })).toEqual([]);
+  });
+
+  it("rejects an exercise ID that isn't in the catalogue", () => {
+    expectOneProblem(check({ ...clip, exercise: "not-an-exercise" }), "no published exercise has that slug");
+    expectOneProblem(check({ ...clip, exercise: "" }), "no published exercise has that slug");
+  });
+
+  it("rejects drafts and withdrawn exercises", () => {
+    // Every exercise is published today, so the test makes its own draft.
+    const draft: Exercise = { ...bySlug("bodyweight-squat"), slug: "draft-squat", name: "Draft squat", review: "draft" };
+    expectOneProblem(check({ ...clip, exercise: draft.slug }), "no published exercise has that slug");
+    // Even when a draft is handed in by mistake with the published list.
+    expectOneProblem(validateVideos([{ ...clip, exercise: draft.slug }], [...PUBLISHED_EXERCISES, draft]), "still a draft");
+    expectOneProblem(check({ ...clip, exercise: WITHDRAWN_EXERCISES[0].slug }), "no published exercise has that slug");
+  });
+
+  it("allows one clip per exercise and angle, and each clip once", () => {
+    expectOneProblem(check(clip, { ...clip, publicId: "tests/example-clip-2" }), "already a front-side video");
+    expect(check(clip, { ...clip, angle: "side", publicId: "tests/example-clip-2" })).toEqual([]);
+    expectOneProblem(check(clip, { ...clip, exercise: "reverse-lunge" }), "already used by another video");
+  });
+
+  it.each([
+    ["empty", ""],
+    ["capital letters", "tests/Example-Clip"],
+    ["a space", "tests/example clip"],
+    ["a file extension", "tests/example-clip.mp4"],
+    ["a leading slash", "/tests/example-clip"],
+    ["a trailing slash", "tests/example-clip/"],
+    ["an empty folder", "tests//example-clip"],
+    ["a parent folder", "../example-clip"],
+    ["a full address", "https://res.cloudinary.com/demo/video/upload/example-clip"],
+    ["a transformation", "t_mf_demo/example-clip"],
+    ["an underscore", "tests/example_clip"],
+    ["a version number", "v12/example-clip"],
+    ["a version number further in", "tests/v3/example-clip"],
+  ])("rejects a Cloudinary ID with %s", (_, publicId) => {
+    expectOneProblem(check({ ...clip, publicId }), "is not a valid Cloudinary ID");
+  });
+
+  it.each(["", "24/10/2026", "2026-10-24T10:00", "2026-02-30", "2026-13-01", "2026-00-10"])(
+    "requires a real review date, not %p",
+    (reviewedOn) => {
+      expectOneProblem(check({ ...clip, reviewedOn }), "reviewedOn must be a real date");
+    },
+  );
+
+  it.each<[string, Partial<ExerciseVideo>, string]>([
+    ["no width", { width: 0 }, "whole numbers above 0"],
+    ["a fractional height", { height: 1280.5 }, "whole numbers above 0"],
+    ["under a second", { durationSeconds: 0.5 }, "between 1 and 60 seconds"],
+    ["over a minute", { durationSeconds: 61 }, "between 1 and 60 seconds"],
+    ["no duration", { durationSeconds: Number.NaN }, "between 1 and 60 seconds"],
+  ])("rejects a clip with %s", (_, change, problem) => {
+    expectOneProblem(check({ ...clip, ...change }), problem);
+  });
+
+  it("builds addresses only from a valid cloud name, through the named transformations", () => {
+    for (const cloudName of [undefined, "", "  ", "my cloud", "cloud/../other", "cloud.example.com"]) {
+      expect(videoSources(clip, cloudName)).toBeNull();
+    }
+    expect(VIDEO_PRESETS).toEqual({ video: "mf_demo", poster: "mf_poster" });
+    expect(videoSources(clip, "mugabe-fitness")).toEqual({
+      src: "https://res.cloudinary.com/mugabe-fitness/video/upload/t_mf_demo/tests/example-clip.mp4",
+      poster: "https://res.cloudinary.com/mugabe-fitness/video/upload/t_mf_poster/tests/example-clip.jpg",
+      width: 720,
+      height: 1280,
+    });
+  });
+
+  it("shows the front view first when an exercise has several", () => {
+    const side = { ...clip, angle: "side" as const, publicId: "tests/side" };
+    const front = { ...clip, angle: "front" as const, publicId: "tests/front" };
+    expect(videoFor("bodyweight-squat", [side, clip, front])?.publicId).toBe("tests/front");
+    expect(videoFor("bodyweight-squat", [side, clip])?.publicId).toBe("tests/example-clip");
+    expect(videoFor("reverse-lunge", [side, clip, front])).toBeUndefined();
   });
 });

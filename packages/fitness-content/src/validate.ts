@@ -1,5 +1,6 @@
 import { EQUIPMENT } from "./modes";
 import type { Exercise, Muscle, WorkoutMode } from "./types";
+import type { ExerciseVideo } from "./videos";
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -149,6 +150,59 @@ export function validateCatalogue(
         problems.push(`Exercise "${exercise.slug}": alternative "${alternative}" works different target muscles.`);
       }
     }
+  }
+
+  return problems;
+}
+
+/**
+ * Folders and a name of lowercase words joined by hyphens, e.g.
+ * "mugabe-fitness/exercises/push-up". No underscores, so no part can read as
+ * a transformation in the address (t_..., c_...), and no "v12" part, which
+ * would read as a version number.
+ */
+const PUBLIC_ID = /^(?!(?:.*\/)?v\d+(?:\/|$))[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
+const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** A real day of the calendar written as YYYY-MM-DD: no 2026-02-30. */
+function isCalendarDate(value: string) {
+  const match = DATE.exec(value);
+  if (!match) return false;
+  const [year, month, day] = match.slice(1).map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
+/**
+ * Everything wrong with the video list, as readable sentences. A video may
+ * only point at a published exercise, so a clip can never put a draft or a
+ * withdrawn exercise on a page; one clip per exercise and angle, and each
+ * clip used once.
+ */
+export function validateVideos(videos: readonly ExerciseVideo[], published: readonly Exercise[]): string[] {
+  const problems: string[] = [];
+  const exercises = new Map(published.map((exercise) => [exercise.slug, exercise]));
+  const seen = new Set<string>();
+  const clips = new Set<string>();
+
+  for (const video of videos) {
+    const label = `Video for "${video.exercise}"`;
+    const exercise = exercises.get(video.exercise);
+    if (!exercise) problems.push(`${label}: no published exercise has that slug.`);
+    else if (exercise.review === "draft") problems.push(`${label}: the exercise is still a draft.`);
+    const key = `${video.exercise}/${video.angle}`;
+    if (seen.has(key)) problems.push(`${label}: there is already a ${video.angle} video for it.`);
+    seen.add(key);
+    if (!PUBLIC_ID.test(video.publicId)) problems.push(`${label}: "${video.publicId}" is not a valid Cloudinary ID.`);
+    else if (clips.has(video.publicId)) problems.push(`${label}: "${video.publicId}" is already used by another video.`);
+    clips.add(video.publicId);
+    if (!Number.isInteger(video.width) || !Number.isInteger(video.height) || video.width <= 0 || video.height <= 0) {
+      problems.push(`${label}: width and height must be whole numbers above 0.`);
+    }
+    if (!(video.durationSeconds >= 1 && video.durationSeconds <= 60)) {
+      problems.push(`${label}: a demonstration should last between 1 and 60 seconds.`);
+    }
+    if (!isCalendarDate(video.reviewedOn)) problems.push(`${label}: reviewedOn must be a real date like 2026-10-24.`);
   }
 
   return problems;

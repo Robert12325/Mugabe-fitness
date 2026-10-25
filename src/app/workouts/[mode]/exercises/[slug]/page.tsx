@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CATALOGUE, MODES } from "@mugabe/fitness-content";
+import { CATALOGUE, MODES, videoFor, videoSources } from "@mugabe/fitness-content";
 import ExerciseDetail from "@/components/workouts/exercise-detail";
 
 // Only published exercises are built, each under its own mode; a draft, an
@@ -30,10 +30,16 @@ export default async function ExercisePage({ params }: PageProps<"/workouts/[mod
 
   if (!exercise) notFound();
 
+  // Without a reviewed clip, or without the Cloudinary cloud name, the page
+  // keeps "Demonstration coming soon".
+  const clip = videoFor(exercise.slug);
+  const video = clip ? videoSources(clip, process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) : null;
+
   return (
     <ExerciseDetail
       exercise={exercise}
       alternatives={CATALOGUE.alternativesOf(exercise).map(({ slug, name }) => ({ slug, name }))}
+      video={video}
     />
   );
 }

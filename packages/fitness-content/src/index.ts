@@ -17,6 +17,15 @@ export {
 export { CATALOGUE, createCatalogue, isPendingReview, isPublished, type Catalogue } from "./catalogue";
 export { PUBLISHED_EXERCISES } from "./published";
 export {
+  EXERCISE_VIDEOS,
+  VIDEO_PRESETS,
+  videoFor,
+  videoSources,
+  type ExerciseVideo,
+  type VideoAngle,
+  type VideoSources,
+} from "./videos";
+export {
   DIFFICULTY_NAMES,
   ENGLISH_WORDS,
   MUSCLE_NAMES,
