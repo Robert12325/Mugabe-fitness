@@ -2,10 +2,11 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { checkRegistration, PASSWORD_MIN, type FieldErrors, type Registration } from "@/api/account";
 import { useAuth } from "@/auth/AuthProvider";
+import { View } from "react-native";
 import { AppText } from "@/components/AppText";
-import { BrandMark } from "@/components/BrandMark";
+import { AuthHeader } from "@/components/AuthHeader";
 import { Button } from "@/components/Button";
-import { FormScreen } from "@/components/FormScreen";
+import { FormScreen, formStyles } from "@/components/FormScreen";
 import { SessionNotice } from "@/components/SessionNotice";
 import { TextField } from "@/components/TextField";
 
@@ -47,69 +48,73 @@ export default function RegisterScreen() {
 
   return (
     <FormScreen testID="screen-register">
-      <BrandMark size={36} />
-
-      <AppText variant="title" accessibilityRole="header">
-        CREATE YOUR ACCOUNT
-      </AppText>
-      <AppText tone="secondary">
-        One account for the app and the Mugabe Fitness website.
-      </AppText>
+      <AuthHeader
+        title="START YOUR"
+        accent="JOURNEY."
+        subtitle="One account for the app and the Mugabe Fitness website."
+      />
 
       <SessionNotice />
 
-      <TextField
-        label="Name"
-        value={form.name}
-        onChangeText={(value) => set("name", value)}
-        error={errors.name}
-        autoComplete="name"
-        textContentType="name"
-        testID="register-name"
-      />
-      <TextField
-        label="Email"
-        value={form.email}
-        onChangeText={(value) => set("email", value)}
-        error={errors.email}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoComplete="email"
-        textContentType="emailAddress"
-        autoCorrect={false}
-        testID="register-email"
-      />
-      <TextField
-        label="Phone"
-        value={form.phone}
-        onChangeText={(value) => set("phone", value)}
-        error={errors.phone}
-        keyboardType="phone-pad"
-        autoComplete="tel"
-        textContentType="telephoneNumber"
-        testID="register-phone"
-      />
-      <TextField
-        label="Password"
-        value={form.password}
-        onChangeText={(value) => set("password", value)}
-        error={errors.password}
-        placeholder={`At least ${PASSWORD_MIN} characters`}
-        secureTextEntry
-        autoCapitalize="none"
-        autoComplete="new-password"
-        textContentType="newPassword"
-        onSubmitEditing={() => void submit()}
-        testID="register-password"
-      />
+      <View style={formStyles.panel}>
+        <TextField
+          label="Name"
+          icon="person-outline"
+          value={form.name}
+          onChangeText={(value) => set("name", value)}
+          error={errors.name}
+          autoComplete="name"
+          textContentType="name"
+          testID="register-name"
+        />
+        <TextField
+          label="Email"
+          icon="mail-outline"
+          value={form.email}
+          onChangeText={(value) => set("email", value)}
+          error={errors.email}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+          textContentType="emailAddress"
+          autoCorrect={false}
+          testID="register-email"
+        />
+        <TextField
+          label="Phone"
+          icon="call-outline"
+          value={form.phone}
+          onChangeText={(value) => set("phone", value)}
+          error={errors.phone}
+          keyboardType="phone-pad"
+          autoComplete="tel"
+          textContentType="telephoneNumber"
+          testID="register-phone"
+        />
+        <TextField
+          label="Password"
+          icon="lock-closed-outline"
+          value={form.password}
+          onChangeText={(value) => set("password", value)}
+          error={errors.password}
+          placeholder={`At least ${PASSWORD_MIN} characters`}
+          secureTextEntry
+          autoCapitalize="none"
+          autoComplete="new-password"
+          textContentType="newPassword"
+          onSubmitEditing={() => void submit()}
+          testID="register-password"
+        />
 
-      {formError ? (
-        <AppText tone="danger" accessibilityRole="alert" testID="register-error">
-          {formError}
-        </AppText>
-      ) : null}
+        {formError ? (
+          <AppText tone="danger" accessibilityRole="alert" testID="register-error">
+            {formError}
+          </AppText>
+        ) : null}
 
-      <Button label="Create account" loading={busy} onPress={() => void submit()} testID="register-submit" />
+        <Button label="Create account" loading={busy} onPress={() => void submit()} testID="register-submit" />
+      </View>
+
       <Button
         label="Already have an account? Sign in"
         variant="ghost"
