@@ -2,15 +2,22 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { checkRegistration, PASSWORD_MIN, type FieldErrors, type Registration } from "@/api/account";
 import { useAuth } from "@/auth/AuthProvider";
-import { View } from "react-native";
+import { Linking, StyleSheet, View } from "react-native";
 import { AppText } from "@/components/AppText";
 import { AuthHeader } from "@/components/AuthHeader";
 import { Button } from "@/components/Button";
 import { FormScreen, formStyles } from "@/components/FormScreen";
 import { SessionNotice } from "@/components/SessionNotice";
 import { TextField } from "@/components/TextField";
+import { websiteUrl } from "@/config/website";
 
 const EMPTY: Registration = { name: "", email: "", phone: "", password: "" };
+const PRIVACY_PAGE = websiteUrl("/privacy");
+
+const styles = StyleSheet.create({
+  privacy: { textAlign: "center" },
+  link: { textDecorationLine: "underline" },
+});
 
 export default function RegisterScreen() {
   const { register } = useAuth();
@@ -113,6 +120,22 @@ export default function RegisterScreen() {
         ) : null}
 
         <Button label="Create account" loading={busy} onPress={() => void submit()} testID="register-submit" />
+
+        {PRIVACY_PAGE ? (
+          <AppText variant="small" tone="muted" style={styles.privacy}>
+            By creating an account you agree to how we handle your data in our{" "}
+            <AppText
+              variant="small"
+              tone="gold"
+              accessibilityRole="link"
+              onPress={() => Linking.openURL(PRIVACY_PAGE)}
+              style={styles.link}
+            >
+              privacy policy
+            </AppText>
+            .
+          </AppText>
+        ) : null}
       </View>
 
       <Button

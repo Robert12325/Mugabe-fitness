@@ -17,6 +17,7 @@ import { colors, radius, spacing } from "@/theme";
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
 const ACCOUNT_PAGE = websiteUrl("/account");
+const PRIVACY_PAGE = websiteUrl("/privacy");
 const APP_VERSION = Constants.expoConfig?.version;
 
 function initialsOf(name: string) {
@@ -137,6 +138,27 @@ export default function ProfileScreen() {
         </Pressable>
       ) : null}
 
+      {PRIVACY_PAGE ? (
+        <Pressable
+          onPress={() => Linking.openURL(PRIVACY_PAGE)}
+          accessibilityRole="link"
+          accessibilityLabel="Privacy policy"
+          style={({ pressed }) => [styles.link, pressed && styles.pressed]}
+          testID="profile-privacy"
+        >
+          <View style={styles.linkIcon}>
+            <Ionicons name="shield-checkmark-outline" size={20} color={colors.gold} />
+          </View>
+          <View style={styles.flex}>
+            <AppText variant="bodyStrong">Privacy policy</AppText>
+            <AppText variant="small" tone="secondary">
+              What we collect and how it&apos;s used
+            </AppText>
+          </View>
+          <Ionicons name="open-outline" size={18} color={colors.gold} />
+        </Pressable>
+      ) : null}
+
       <Button
         label="Sign out"
         variant="outline"
@@ -144,6 +166,19 @@ export default function ProfileScreen() {
         onPress={confirmSignOut}
         testID="profile-sign-out"
       />
+
+      <Pressable
+        onPress={() => router.push("/delete-account")}
+        accessibilityRole="button"
+        accessibilityLabel="Delete my account"
+        hitSlop={8}
+        style={styles.deleteLink}
+        testID="profile-delete-account"
+      >
+        <AppText variant="small" tone="danger" style={styles.deleteText}>
+          Delete my account
+        </AppText>
+      </Pressable>
 
       {APP_VERSION ? (
         <AppText variant="small" tone="muted" style={styles.center}>
@@ -242,4 +277,6 @@ const styles = StyleSheet.create({
   },
   pressed: { borderColor: colors.gold },
   flex: { flex: 1 },
+  deleteLink: { alignSelf: "center", paddingVertical: spacing.sm },
+  deleteText: { fontWeight: "700", textDecorationLine: "underline" },
 });
