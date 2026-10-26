@@ -1,4 +1,5 @@
 import { StyleSheet, View } from "react-native";
+import { MEMBERSHIP_STATUS } from "@/account/membership";
 import type { CoachingMembership } from "@/api/account";
 import { useAuth } from "@/auth/AuthProvider";
 import { AppText } from "@/components/AppText";
@@ -7,15 +8,7 @@ import { ComingSoon } from "@/components/ComingSoon";
 import { PageHeader } from "@/components/PageHeader";
 import { Screen } from "@/components/Screen";
 import { SignedOutPrompt } from "@/components/SignedOutPrompt";
-import { colors, radius, spacing } from "@/theme";
-
-const STATUS: Record<CoachingMembership["status"], { label: string; color: string }> = {
-  none: { label: "No program yet", color: colors.textSecondary },
-  trial: { label: "Free trial", color: colors.gold },
-  paid: { label: "Active", color: colors.success },
-  due: { label: "Payment due", color: colors.warning },
-  expired: { label: "Expired", color: colors.danger },
-};
+import { radius, spacing } from "@/theme";
 
 function formatMoment(iso: string) {
   const date = new Date(iso);
@@ -53,7 +46,7 @@ export default function ProgramScreen() {
 }
 
 function MembershipCard({ membership }: { membership: CoachingMembership }) {
-  const status = STATUS[membership.status];
+  const status = MEMBERSHIP_STATUS[membership.status];
 
   const detail =
     membership.status === "trial" && membership.trialEndsAt

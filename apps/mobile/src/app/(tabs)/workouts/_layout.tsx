@@ -1,6 +1,10 @@
 import { Stack } from "expo-router";
 import { colors, fonts } from "@/theme";
 
+// Opening a mode or body part straight from Home keeps the Workouts list
+// underneath, so Back still works.
+export const unstable_settings = { initialRouteName: "index" };
+
 /** The Workouts tab: choose a mode, a body part, then an exercise. */
 export default function WorkoutsLayout() {
   return (
