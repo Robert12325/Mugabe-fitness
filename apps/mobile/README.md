@@ -7,9 +7,9 @@ It lives beside the website and shares nothing with its build: its own
 `package.json`, lockfile and `node_modules`. The website at the repository
 root is unchanged; its type check and lint simply skip `apps/`.
 
-This is the **foundation**: branding, navigation, and sign-in against the
-existing backend. Workouts, the full program view and progress tracking are
-placeholders for later phases.
+It has branding, navigation, sign-in against the existing backend, and
+**Daily Tracking** on the Progress tab. Workouts and the full program view
+are placeholders for later phases.
 
 ## Requirements
 
@@ -62,7 +62,7 @@ Restart with `npx expo start --clear` after changing `.env`.
 ```sh
 npm run typecheck      # TypeScript
 npm run lint           # ESLint (eslint-config-expo)
-npm test               # Jest (jest-expo): config, API client, sessions, navigation
+npm test               # Jest (jest-expo): config, API client, sessions, navigation, daily tracking
 npm run doctor         # Expo's dependency and config health check
 ```
 
@@ -105,6 +105,34 @@ The app uses the website's existing account routes, unchanged:
   does not unlock premium app content; that will need its own server-side
   entitlement check.
 
+## Daily Tracking
+
+The Progress tab uses the website's existing daily-tracking routes,
+unchanged. Only a signed-in client with an open trial or paid month can use
+them; the server checks that on every request.
+
+| Action | Route |
+| --- | --- |
+| Load the log, targets and weigh-ins | `GET /api/account/daily` → `{ log, targets, progress }` |
+| Save one day (weight optional) | `POST /api/account/daily` → `{ log, progress }` |
+| Delete one day | `DELETE /api/account/daily?on=YYYY-MM-DD` → `{ log, progress }` |
+
+- Clients log calories, protein, water, steps, waist, sleep, workout,
+  energy, notes and weight. Every field is optional. Weight goes into the
+  website's existing weigh-in log (`weightGrams`; `null` removes that day's
+  weigh-in). Saving a day with everything empty removes it, so the app
+  confirms first.
+- Targets are only what the coach set on the website. The app never
+  suggests one.
+- The screen shows only what the server returned. 401 re-checks the
+  session (and signs out if it ended), 403 shows "access ended" with no
+  form, 429 (60 changes an hour) and 400 show the server's message and keep
+  the form, and offline shows a retry.
+- The rules (limits, units, summaries) are copied from the website's
+  `src/lib/daily.ts` into `src/lib/daily.ts` here and pinned by
+  `__tests__/daily-rules.test.ts`. If the website's rules change, change
+  both.
+
 ## Project layout
 
 ```
@@ -113,9 +141,13 @@ src/
     (tabs)/       Home, Workouts, My Program, Progress, Profile
     sign-in.tsx   modal
     register.tsx  modal
-  api/            backend client and account routes
+    log-day.tsx   modal: log or edit one day
+  api/            backend client, account and daily routes
   auth/           session state and secure token storage
+  daily/          shared daily-tracking state
+  lib/daily.ts    daily rules (mirrors the website's)
   components/     Text, Button, Card, TextField, Screen, …
+    progress/     meters, summary, trends, workout row, history row
   config/env.ts   EXPO_PUBLIC_API_URL handling
   theme/          colours, spacing, radii, typography
 __tests__/        Jest tests (kept out of src/app, which is routes only)

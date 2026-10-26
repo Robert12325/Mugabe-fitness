@@ -12,6 +12,7 @@ import { StatusBar } from "expo-status-bar";
 import { View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "@/auth/AuthProvider";
+import { DailyProvider } from "@/daily/DailyProvider";
 import { colors, fonts } from "@/theme";
 
 export default function RootLayout() {
@@ -33,26 +34,32 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerStyle: { backgroundColor: colors.background },
-            headerTintColor: colors.gold,
-            headerTitleStyle: { fontFamily: fonts.heavy, color: colors.text },
-            headerShadowVisible: false,
-            contentStyle: { backgroundColor: colors.background },
-          }}
-        >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="sign-in"
-            options={{ presentation: "modal", title: "Sign in" }}
-          />
-          <Stack.Screen
-            name="register"
-            options={{ presentation: "modal", title: "Create account" }}
-          />
-        </Stack>
+        <DailyProvider>
+          <StatusBar style="light" />
+          <Stack
+            screenOptions={{
+              headerStyle: { backgroundColor: colors.background },
+              headerTintColor: colors.gold,
+              headerTitleStyle: { fontFamily: fonts.heavy, color: colors.text },
+              headerShadowVisible: false,
+              contentStyle: { backgroundColor: colors.background },
+            }}
+          >
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="sign-in"
+              options={{ presentation: "modal", title: "Sign in" }}
+            />
+            <Stack.Screen
+              name="register"
+              options={{ presentation: "modal", title: "Create account" }}
+            />
+            <Stack.Screen
+              name="log-day"
+              options={{ presentation: "modal", title: "Log your day" }}
+            />
+          </Stack>
+        </DailyProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

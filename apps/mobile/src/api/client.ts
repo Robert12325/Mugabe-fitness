@@ -20,6 +20,8 @@ export type FailureKind =
   | "timeout"
   /** 401: wrong credentials, or the session expired or was revoked. */
   | "unauthorized"
+  /** 403: signed in, but the trial or paid month has lapsed. */
+  | "forbidden"
   /** 400: the server refused the input. */
   | "invalid"
   /** 409: e.g. an account already exists for that email. */
@@ -49,6 +51,7 @@ const FALLBACK_MESSAGE: Record<FailureKind, string> = {
   network: "You appear to be offline. Check your connection and try again.",
   timeout: "The server took too long to answer. Please try again.",
   unauthorized: "Please sign in again.",
+  forbidden: "Your access has ended. Renew your membership on the website.",
   invalid: "Please check your details and try again.",
   conflict: "That already exists.",
   "rate-limited": "Too many attempts. Please wait a few minutes and try again.",
@@ -60,6 +63,7 @@ const FALLBACK_MESSAGE: Record<FailureKind, string> = {
 function kindFor(status: number): FailureKind {
   if (status === 400) return "invalid";
   if (status === 401) return "unauthorized";
+  if (status === 403) return "forbidden";
   if (status === 409) return "conflict";
   if (status === 429) return "rate-limited";
   if (status === 503) return "unavailable";

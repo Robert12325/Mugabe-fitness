@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import type { ReactElement, ReactNode } from "react";
+import { ScrollView, StyleSheet, type RefreshControlProps } from "react-native";
 import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 import { colors, spacing } from "@/theme";
 
@@ -11,16 +11,20 @@ export function Screen({
   children,
   edges = ["top", "left", "right"],
   testID,
+  refreshControl,
 }: {
   children: ReactNode;
   edges?: Edge[];
   testID?: string;
+  /** Pull-to-refresh, for screens that read from the server. */
+  refreshControl?: ReactElement<RefreshControlProps>;
 }) {
   return (
     <SafeAreaView style={styles.safe} edges={edges} testID={testID}>
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
+        refreshControl={refreshControl}
         showsVerticalScrollIndicator={false}
       >
         {children}

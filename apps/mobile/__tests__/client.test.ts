@@ -47,6 +47,7 @@ describe("createApiClient", () => {
   it.each([
     [400, "invalid"],
     [401, "unauthorized"],
+    [403, "forbidden"],
     [409, "conflict"],
     [429, "rate-limited"],
     [503, "unavailable"],
