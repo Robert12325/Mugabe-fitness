@@ -43,6 +43,11 @@ function progressKey(userId: string) {
   return `mf:user:${userId}:progress`;
 }
 
+/** For account deletion: the daily log, weigh-ins, targets and coach notes. */
+export async function deleteTracking(userId: string) {
+  await redis("DEL", dailyKey(userId), progressKey(userId), targetsKey(userId), notesKey(userId));
+}
+
 /** Unreadable is not the same as empty: refuse rather than let the next
  *  write replace something that might still be recoverable by hand. */
 function parseStored(raw: unknown, label: string): unknown {

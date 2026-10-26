@@ -1,11 +1,13 @@
 import type { NextRequest } from "next/server";
 import { parseRegistration } from "@/lib/account";
 import {
+  allowLogin,
   allowRegistration,
   listBookings,
   registerAccount,
   userFromRequest,
 } from "@/lib/server/account";
+import { deleteAccount } from "@/lib/server/account-deletion";
 import {
   clientIp,
   jsonError,
@@ -51,6 +53,45 @@ export async function POST(request: NextRequest) {
     console.error("[account] register failed", cause);
 
     return jsonError(500, "Your account couldn't be created. Please try again.");
+  }
+}
+
+/**
+ * Signed-in visitor — permanently delete their account, after confirming
+ * the password. A wrong password is a 400, not a 401, so the app doesn't
+ * mistake it for an expired session and sign the member out.
+ */
+export async function DELETE(request: NextRequest) {
+  if (!storageConfigured()) {
+    return jsonError(503, "Accounts aren't available right now.");
+  }
+
+  const body = await readJsonBody(request, 1_000);
+
+  if (!body.ok) return jsonError(body.status, body.message);
+
+  const value = body.value as { password?: unknown } | null;
+  const password = typeof value?.password === "string" ? value.password : "";
+
+  if (!password || password.length > 200) {
+    return jsonError(400, "Enter your password to confirm.");
+  }
+
+  try {
+    if (!(await allowLogin(clientIp(request)))) {
+      return jsonError(429, "Too many attempts. Try again in a few minutes.");
+    }
+
+    const result = await deleteAccount(request, password);
+
+    if (result === "unauthorized") return jsonError(401, "Please log in again.");
+    if (result === "wrong-password") return jsonError(400, "That password isn't right.");
+
+    return jsonOk({ ok: true });
+  } catch (cause) {
+    console.error("[account] delete failed", cause);
+
+    return jsonError(500, "Your account couldn't be deleted. Please try again.");
   }
 }
 

@@ -200,6 +200,16 @@ export function createAccountApi(request: ApiClient = api) {
       });
     },
 
+    /**
+     * Permanently deletes the account, confirmed with its password. A wrong
+     * password comes back as "invalid" (400), never as "unauthorized".
+     */
+    deleteAccount(token: string, password: string): Promise<ApiResult<true>> {
+      if (!TOKEN.test(token)) return Promise.resolve(failure("unauthorized", 0));
+
+      return request({ method: "DELETE", path: "/api/account", token, body: { password }, parse: () => true });
+    },
+
     getAccount(token: string): Promise<ApiResult<Account>> {
       if (!TOKEN.test(token)) return Promise.resolve(failure("unauthorized", 0));
 

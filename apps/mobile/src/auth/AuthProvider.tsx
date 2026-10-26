@@ -14,7 +14,7 @@ import {
   type AccountApi,
   type Registration,
 } from "@/api/account";
-import type { ApiFailure } from "@/api/client";
+import { failure, type ApiFailure } from "@/api/client";
 import { secureTokenStore, type TokenStore } from "./token-store";
 
 /**
@@ -46,6 +46,8 @@ type AuthContextValue = {
   signIn(email: string, password: string): Promise<AuthResult>;
   register(input: Registration): Promise<AuthResult>;
   signOut(): Promise<void>;
+  /** Permanently deletes the signed-in account, then signs out. */
+  deleteAccount(password: string): Promise<AuthResult>;
   /** Re-checks the session and re-reads the account. */
   refresh(): Promise<void>;
 };
@@ -165,6 +167,24 @@ export function AuthProvider({
     if (token) await accountApi.logOut(token);
   }, [accountApi, state, tokenStore]);
 
+  const deleteAccount = useCallback(
+    async (password: string): Promise<AuthResult> => {
+      if (state.status !== "signedIn") return { ok: false, failure: failure("unauthorized", 0) };
+
+      const result = await accountApi.deleteAccount(state.token, password);
+
+      // Deleted, or the session had already ended: either way, signed out.
+      if (result.ok || result.kind === "unauthorized") {
+        generation.current++;
+        await tokenStore.clear();
+        setState(result.ok ? { status: "signedOut" } : { status: "signedOut", notice: "expired" });
+      }
+
+      return result.ok ? { ok: true } : { ok: false, failure: result };
+    },
+    [accountApi, state, tokenStore],
+  );
+
   const refresh = useCallback(async () => {
     if (state.status !== "signedIn" && state.status !== "unverified") return;
 
@@ -172,8 +192,8 @@ export function AuthProvider({
   }, [state, verify]);
 
   const value = useMemo(
-    () => ({ state, signIn, register, signOut, refresh }),
-    [state, signIn, register, signOut, refresh],
+    () => ({ state, signIn, register, signOut, deleteAccount, refresh }),
+    [state, signIn, register, signOut, deleteAccount, refresh],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

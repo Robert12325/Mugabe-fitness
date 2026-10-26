@@ -320,6 +320,14 @@ export async function listUserEnquiries(userId: string): Promise<Lead[]> {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+/**
+ * For account deletion: forgets which enquiries the account sent. The
+ * enquiries stay, as the coach's booking and payment records.
+ */
+export async function unlinkUserEnquiries(userId: string) {
+  await redis("DEL", userEnquiries(userId));
+}
+
 export type UpdateResult =
   | { ok: true; lead: Lead }
   | { ok: false; reason: "missing" | "no-proof" };

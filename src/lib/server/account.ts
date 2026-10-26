@@ -12,7 +12,7 @@ import {
   listUserEnquiries,
   tokenMatches,
 } from "./enquiry";
-import { rateLimit, redis } from "./redis";
+import { pipeline, rateLimit, redis } from "./redis";
 
 /** user id -> JSON (profile + password hash). */
 const USERS = "mf:users";
@@ -205,6 +205,49 @@ export async function userFromRequest(
   const stored = readStoredUser(await redis<unknown>("HGET", USERS, id));
 
   return stored ? publicUser(stored) : null;
+}
+
+export type OwnerCheck =
+  | { ok: true; user: AccountUser }
+  | { ok: false; reason: "unauthorized" | "wrong-password" };
+
+/**
+ * For deleting an account: the signed-in account behind this request, but
+ * only if `password` is its password, so a phone left unlocked can't be
+ * used to delete someone's account.
+ */
+export async function confirmAccountOwner(
+  request: Request,
+  password: string,
+): Promise<OwnerCheck> {
+  const token = bearerToken(request);
+  const id = token ? await redis<unknown>("GET", sessionKey(token)) : null;
+  const stored =
+    typeof id === "string"
+      ? readStoredUser(await redis<unknown>("HGET", USERS, id))
+      : null;
+
+  if (!stored) return { ok: false, reason: "unauthorized" };
+  if (!(await passwordMatches(password, stored.passwordHash))) {
+    return { ok: false, reason: "wrong-password" };
+  }
+
+  return { ok: true, user: publicUser(stored) };
+}
+
+/**
+ * Deletes the login: the profile with its password hash, the email claim
+ * and this session. Every other session stops working at the same moment,
+ * because a session is only ever resolved through the profile.
+ */
+export async function removeLogin(request: Request, user: AccountUser) {
+  const token = bearerToken(request);
+
+  await pipeline([
+    ["HDEL", USERS, user.id],
+    ["HDEL", EMAILS, user.email],
+    ...(token ? [["DEL", sessionKey(token)]] : []),
+  ]);
 }
 
 export async function endSession(request: Request) {

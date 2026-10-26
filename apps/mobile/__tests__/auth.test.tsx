@@ -37,6 +37,7 @@ function fakeApi(overrides: Partial<AccountApi> = {}): jest.Mocked<AccountApi> {
     register: jest.fn(async () => ({ ok: true as const, data: { token: TOKEN, user: USER } })),
     logIn: jest.fn(async () => ({ ok: true as const, data: { token: TOKEN, user: USER } })),
     logOut: jest.fn(async () => ({ ok: true as const, data: true as const })),
+    deleteAccount: jest.fn(async () => ({ ok: true as const, data: true as const })),
     getAccount: jest.fn(async () => ({ ok: true as const, data: ACCOUNT })),
     ...overrides,
   } as jest.Mocked<AccountApi>;
@@ -155,5 +156,40 @@ describe("signing in and out", () => {
     expect(store.value).toBeNull();
     expect(result.current.state).toEqual({ status: "signedOut" });
     expect(api.logOut).toHaveBeenCalledWith(TOKEN);
+  });
+});
+
+describe("deleting the account", () => {
+  it("deletes on the server with the password, then forgets the token", async () => {
+    const store = memoryStore(TOKEN);
+    const api = fakeApi();
+    const { result } = await setup(api, store);
+    await waitFor(() => expect(result.current.state.status).toBe("signedIn"));
+
+    let outcome: Awaited<ReturnType<typeof result.current.deleteAccount>> | undefined;
+    await act(async () => {
+      outcome = await result.current.deleteAccount("correct horse");
+    });
+
+    expect(api.deleteAccount).toHaveBeenCalledWith(TOKEN, "correct horse");
+    expect(outcome).toEqual({ ok: true });
+    expect(store.value).toBeNull();
+    expect(result.current.state).toEqual({ status: "signedOut" });
+  });
+
+  it("stays signed in when the password is wrong", async () => {
+    const store = memoryStore(TOKEN);
+    const api = fakeApi({ deleteAccount: jest.fn(async () => failure("invalid", 400, "That password isn't right.")) });
+    const { result } = await setup(api, store);
+    await waitFor(() => expect(result.current.state.status).toBe("signedIn"));
+
+    let outcome: Awaited<ReturnType<typeof result.current.deleteAccount>> | undefined;
+    await act(async () => {
+      outcome = await result.current.deleteAccount("wrong");
+    });
+
+    expect(outcome).toMatchObject({ ok: false, failure: { kind: "invalid", message: "That password isn't right." } });
+    expect(store.value).toBe(TOKEN);
+    expect(result.current.state.status).toBe("signedIn");
   });
 });

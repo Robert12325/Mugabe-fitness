@@ -122,6 +122,27 @@ async function getRecord(userId: string) {
   return readRecord(await redis<unknown>("GET", key(userId)));
 }
 
+/**
+ * For account deletion: the membership record, the account's place in the
+ * coach's member list and its renewal screenshots. An unreadable record is
+ * deleted too.
+ */
+export async function deleteMembership(userId: string) {
+  let renewalIds: string[] = [];
+
+  try {
+    renewalIds = (await getRecord(userId))?.renewals.map((renewal) => renewal.id) ?? [];
+  } catch {
+    // Unreadable: its screenshots can't be listed, but the record still goes.
+  }
+
+  await pipeline([
+    ["DEL", key(userId)],
+    ["SREM", MEMBERS, userId],
+    ...(renewalIds.length ? [["HDEL", SCREENSHOTS, ...renewalIds.map((id) => `${userId}:${id}`)]] : []),
+  ]);
+}
+
 async function saveRecord(userId: string, record: MembershipRecord) {
   await pipeline([
     ["SET", key(userId), JSON.stringify(record)],

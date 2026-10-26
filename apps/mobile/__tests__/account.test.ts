@@ -57,6 +57,24 @@ describe("account contract (mirrors the website's API routes)", () => {
     expect(calls[0]).toMatchObject({ method: "DELETE", path: "/api/account/session", token: TOKEN });
   });
 
+  it("deletes the account with DELETE /api/account, the token and the password", async () => {
+    const { calls, api } = recorder({ ok: true });
+
+    const result = await api.deleteAccount(TOKEN, " my pass ");
+
+    expect(result).toEqual({ ok: true, data: true });
+    expect(calls[0]).toMatchObject({ method: "DELETE", path: "/api/account", token: TOKEN, body: { password: " my pass " } });
+  });
+
+  it("never sends a deletion with a malformed token", async () => {
+    const { calls, api } = recorder({ ok: true });
+
+    const result = await api.deleteAccount("bad", "pass");
+
+    expect(result).toMatchObject({ ok: false, kind: "unauthorized" });
+    expect(calls).toHaveLength(0);
+  });
+
   it("reads the account with GET /api/account and the bearer token", async () => {
     const { calls, api } = recorder({ user: USER, bookings: [], membership: { status: "trial", programName: "Mugabe Live", trialEndsAt: "2026-10-04T10:00:00.000Z" } });
 

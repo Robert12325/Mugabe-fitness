@@ -58,6 +58,10 @@ export default function RootLayout() {
               name="log-day"
               options={{ presentation: "modal", title: "Log your day" }}
             />
+            <Stack.Screen
+              name="delete-account"
+              options={{ presentation: "modal", title: "Delete account" }}
+            />
           </Stack>
         </DailyProvider>
       </AuthProvider>
