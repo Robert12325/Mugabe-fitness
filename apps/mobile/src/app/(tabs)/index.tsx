@@ -8,7 +8,10 @@ import { useAuth } from "@/auth/AuthProvider";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
+import { StatStrip } from "@/components/progress/StatStrip";
 import { SessionNotice } from "@/components/SessionNotice";
+import { useDaily } from "@/daily/DailyProvider";
+import { localToday } from "@/lib/daily";
 import { CATEGORY_ICONS } from "@/components/workouts/look";
 import { colors, radius, spacing } from "@/theme";
 
@@ -38,6 +41,8 @@ export default function HomeScreen() {
       <CoachingCard />
 
       <QuickTiles />
+
+      <ProgressSection />
 
       <BodyPartRail />
 
@@ -199,6 +204,30 @@ function QuickTiles() {
           </AppText>
         </Pressable>
       ))}
+    </View>
+  );
+}
+
+/** The member's own streak, workouts and weight, once their log has loaded. */
+function ProgressSection() {
+  const { state: auth } = useAuth();
+  const { state } = useDaily();
+
+  if (auth.status !== "signedIn" || state.status !== "ready") return null;
+
+  return (
+    <View style={styles.section} testID="home-progress">
+      <View style={styles.sectionHead}>
+        <AppText variant="heading" accessibilityRole="header">
+          Your progress
+        </AppText>
+        <Pressable onPress={() => router.navigate("/progress")} accessibilityRole="button" accessibilityLabel="See all of my progress" hitSlop={8}>
+          <AppText variant="small" tone="gold">
+            View all
+          </AppText>
+        </Pressable>
+      </View>
+      <StatStrip log={state.data.log} weights={state.data.weights} today={localToday()} />
     </View>
   );
 }

@@ -27,19 +27,22 @@ export function WorkoutRow({
 
       <View style={styles.grid}>
         {days.map((day) => (
-          <View
-            key={day.on}
-            accessible
-            accessibilityLabel={`${day.on}: ${day.workout === true ? "trained" : day.workout === false ? "skipped" : "not logged"}`}
-            style={[
-              styles.cell,
-              { width: days.length > 7 ? "8.4%" : "12.4%" },
-              day.workout === true ? styles.done : day.workout === false ? styles.skipped : styles.none,
-            ]}
-          >
-            <AppText variant="small" tone={day.workout === true ? "onGold" : "danger"}>
-              {day.workout === true ? "✓" : day.workout === false ? "×" : ""}
-            </AppText>
+          <View key={day.on} style={[styles.column, { width: days.length > 7 ? "8.4%" : "12.4%" }]}>
+            {/* A week reads like a streak: M T W T F S S over the squares. */}
+            {days.length <= 7 && (
+              <AppText variant="small" tone="muted" style={styles.letter} importantForAccessibility="no">
+                {weekdayLetter(day.on)}
+              </AppText>
+            )}
+            <View
+              accessible
+              accessibilityLabel={`${day.on}: ${day.workout === true ? "trained" : day.workout === false ? "skipped" : "not logged"}`}
+              style={[styles.cell, day.workout === true ? styles.done : day.workout === false ? styles.skipped : styles.none]}
+            >
+              <AppText variant="small" tone={day.workout === true ? "onGold" : "danger"} style={styles.mark}>
+                {day.workout === true ? "✓" : day.workout === false ? "×" : ""}
+              </AppText>
+            </View>
           </View>
         ))}
       </View>
@@ -51,6 +54,11 @@ export function WorkoutRow({
       </View>
     </Card>
   );
+}
+
+function weekdayLetter(on: string) {
+  const [year, month, day] = on.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString(undefined, { weekday: "narrow" });
 }
 
 function Legend({ swatch, label }: { swatch: object; label: string }) {
@@ -66,8 +74,11 @@ function Legend({ swatch, label }: { swatch: object; label: string }) {
 
 const styles = StyleSheet.create({
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: spacing.sm },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 4 },
-  cell: { aspectRatio: 1, borderRadius: radius.sm / 2, alignItems: "center", justifyContent: "center" },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: 4, justifyContent: "space-between" },
+  column: { alignItems: "center", gap: 4 },
+  letter: { fontWeight: "700" },
+  cell: { width: "100%", aspectRatio: 1, borderRadius: radius.sm, alignItems: "center", justifyContent: "center" },
+  mark: { fontWeight: "800" },
   done: { backgroundColor: colors.gold },
   skipped: { borderWidth: 1, borderColor: "rgba(240,146,140,0.6)", backgroundColor: colors.dangerTint },
   none: { borderWidth: 1, borderColor: colors.border, backgroundColor: "rgba(255,255,255,0.03)" },

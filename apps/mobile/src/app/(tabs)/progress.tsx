@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { DayRow, formatDay } from "@/components/progress/DayRow";
 import { LockedNotice } from "@/components/progress/LockedNotice";
 import { Meter } from "@/components/progress/Meter";
+import { StatStrip } from "@/components/progress/StatStrip";
 import { SummaryCard } from "@/components/progress/SummaryCard";
 import { TrendBars } from "@/components/progress/TrendBars";
 import { WorkoutRow } from "@/components/progress/WorkoutRow";
@@ -122,6 +123,8 @@ function Ready({
           </Pressable>
         </View>
       )}
+
+      <StatStrip log={log} weights={weights} today={today} />
 
       <Card highlight testID="today-card">
         <View style={styles.rowBetween}>
