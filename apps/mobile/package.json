@@ -18,7 +18,8 @@
     "react-dom": "19.3.0",
     "react-native": "0.88.0",
     "react-native-safe-area-context": "~5.10.1",
-    "react-native-screens": "~4.30.0"
+    "react-native-screens": "~4.30.0",
+    "react-native-web": "^0.21.4"
   },
   "devDependencies": {
     "@testing-library/react-native": "^14.1.0",
@@ -38,7 +39,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "test": "jest",
-    "doctor": "expo-doctor"
+    "doctor": "expo-doctor",
+    "export:web": "expo export --platform web --clear && node scripts/publish-web.mjs"
   },
   "private": true,
   "jest": {

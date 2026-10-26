@@ -1,12 +1,13 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useAuth } from "@/auth/AuthProvider";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { FormScreen, formStyles } from "@/components/FormScreen";
 import { TextField } from "@/components/TextField";
+import { notify } from "@/lib/dialogs";
 import { colors, radius, spacing } from "@/theme";
 
 const DELETED = [
@@ -47,7 +48,7 @@ export default function DeleteAccountScreen() {
     }
 
     router.replace("/");
-    Alert.alert("Account deleted", "Your account and its data have been permanently deleted.");
+    notify("Account deleted", "Your account and its data have been permanently deleted.");
   }
 
   if (state.status !== "signedIn") {

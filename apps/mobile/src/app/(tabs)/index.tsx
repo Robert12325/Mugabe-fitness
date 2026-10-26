@@ -136,7 +136,7 @@ function CoachingCard() {
           <AppText variant="eyebrow" tone="gold">
             {signedIn ? "Your coaching" : "Personal coaching"}
           </AppText>
-          <AppText variant="title" numberOfLines={2}>
+          <AppText variant="title" numberOfLines={3} style={styles.coachingTitle}>
             {signedIn ? membership?.programName || "Mugabe Fitness" : signedOut ? "Start your transformation" : "Train with purpose"}
           </AppText>
           {status ? (
@@ -361,6 +361,8 @@ const styles = StyleSheet.create({
   coachPhoto: { position: "absolute", top: 0, right: 0, width: "62%", height: "100%" },
   fade: { position: "absolute", top: 0, bottom: 0, width: "10%", backgroundColor: "#0d0b06" },
   coachingText: { width: "62%", paddingHorizontal: spacing.xl, gap: spacing.sm },
+  // Fits "Start your transformation" in the narrow side of the card.
+  coachingTitle: { fontSize: 22, lineHeight: 26 },
   status: {
     alignSelf: "flex-start",
     flexDirection: "row",

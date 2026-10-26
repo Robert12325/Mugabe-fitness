@@ -26,7 +26,13 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single",
+      "name": "Mugabe Fitness",
+      "shortName": "Mugabe Fitness",
+      "backgroundColor": "#050505",
+      "themeColor": "#050505"
     },
     "plugins": [
       "expo-router",
@@ -49,7 +55,8 @@
       ]
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true,
+      "baseUrl": "/app"
     },
     "extra": {
       "router": {

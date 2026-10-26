@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import Constants from "expo-constants";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, Linking, Pressable, StyleSheet, View } from "react-native";
+import { Linking, Pressable, StyleSheet, View } from "react-native";
 import { MEMBERSHIP_STATUS } from "@/account/membership";
 import { useAuth } from "@/auth/AuthProvider";
 import { AppText } from "@/components/AppText";
@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Screen } from "@/components/Screen";
 import { SignedOutPrompt } from "@/components/SignedOutPrompt";
 import { websiteUrl } from "@/config/website";
+import { confirmAction } from "@/lib/dialogs";
 import { colors, radius, spacing } from "@/theme";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -39,17 +40,16 @@ export default function ProfileScreen() {
   const [signingOut, setSigningOut] = useState(false);
 
   function confirmSignOut() {
-    Alert.alert("Sign out?", "You can sign back in any time.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Sign out",
-        style: "destructive",
-        onPress: () => {
-          setSigningOut(true);
-          void signOut().finally(() => setSigningOut(false));
-        },
+    confirmAction({
+      title: "Sign out?",
+      message: "You can sign back in any time.",
+      confirmLabel: "Sign out",
+      destructive: true,
+      onConfirm: () => {
+        setSigningOut(true);
+        void signOut().finally(() => setSigningOut(false));
       },
-    ]);
+    });
   }
 
   if (state.status !== "signedIn") {

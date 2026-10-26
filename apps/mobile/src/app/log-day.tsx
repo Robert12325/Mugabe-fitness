@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { useAuth } from "@/auth/AuthProvider";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
@@ -12,6 +12,7 @@ import { LockedNotice } from "@/components/progress/LockedNotice";
 import { SignedOutPrompt } from "@/components/SignedOutPrompt";
 import { TextField } from "@/components/TextField";
 import { useDaily } from "@/daily/DailyProvider";
+import { confirmAction } from "@/lib/dialogs";
 import {
   FORM_BOXES,
   MAX_NOTES,
@@ -174,10 +175,13 @@ function DayEditor({
   }
 
   function confirmDelete(message: string) {
-    Alert.alert("Delete this day?", message, [
-      { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => void runDelete() },
-    ]);
+    confirmAction({
+      title: "Delete this day?",
+      message,
+      confirmLabel: "Delete",
+      destructive: true,
+      onConfirm: () => void runDelete(),
+    });
   }
 
   async function submit() {
