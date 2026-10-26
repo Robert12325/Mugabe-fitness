@@ -13,11 +13,15 @@ import {
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 import { AppText } from "@/components/AppText";
-import { Card } from "@/components/Card";
+import { Glow } from "@/components/Glow";
 import { Screen } from "@/components/Screen";
+import { DifficultyPill } from "@/components/workouts/DifficultyPill";
+import { CATEGORY_ICONS } from "@/components/workouts/look";
 import { Lines, Section } from "@/components/workouts/Section";
 import { WorkoutNotFound } from "@/components/workouts/WorkoutNotFound";
 import { colors, radius, spacing } from "@/theme";
+
+type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
 /**
  * How to do one exercise. Only a coach-approved exercise of this mode
@@ -32,42 +36,59 @@ export default function ExerciseScreen() {
 
   const equipment = equipmentNames(exercise);
   const alternatives = CATALOGUE.alternativesOf(exercise);
-  const facts: [label: string, value: string, testID: string][] = [
-    ["Difficulty", DIFFICULTY_NAMES[exercise.difficulty], "fact-difficulty"],
-    [exercise.prescription.kind === "time" ? "Duration" : "Sets and reps", formatPrescription(exercise.prescription), "fact-prescription"],
-    ["Rest between sets", formatRest(exercise.restSeconds), "fact-rest"],
-    ["Equipment", equipment.length ? equipment.join(", ") : "None needed", "fact-equipment"],
+  const facts: [label: string, value: string, testID: string, icon: IconName][] = [
+    ["Difficulty", DIFFICULTY_NAMES[exercise.difficulty], "fact-difficulty", "speedometer-outline"],
+    [
+      exercise.prescription.kind === "time" ? "Duration" : "Sets and reps",
+      formatPrescription(exercise.prescription),
+      "fact-prescription",
+      exercise.prescription.kind === "time" ? "time-outline" : "repeat",
+    ],
+    ["Rest between sets", formatRest(exercise.restSeconds), "fact-rest", "hourglass-outline"],
+    ["Equipment", equipment.length ? equipment.join(", ") : "None needed", "fact-equipment", "barbell-outline"],
   ];
 
   return (
     <Screen testID="screen-exercise" edges={["left", "right"]}>
-      <Stack.Screen options={{ title: exercise.name }} />
+      <Stack.Screen options={{ title: "" }} />
 
-      <AppText variant="eyebrow" tone="gold">
-        {mode.name} · {exercise.categories.map((slug) => CATEGORY_NAMES[slug]).join(", ")}
-      </AppText>
+      <View style={styles.titleBlock}>
+        <AppText variant="eyebrow" tone="gold">
+          {mode.name} · {exercise.categories.map((slug) => CATEGORY_NAMES[slug]).join(", ")}
+        </AppText>
+        <AppText variant="title" accessibilityRole="header">
+          {exercise.name}
+        </AppText>
+        <DifficultyPill difficulty={exercise.difficulty} />
+      </View>
 
       {isPendingReview(exercise) && (
         <View style={styles.pending} testID="pending-review" accessibilityRole="text">
-          <AppText variant="small" tone="gold">
+          <Ionicons name="information-circle-outline" size={18} color={colors.gold} />
+          <AppText variant="small" tone="gold" style={styles.flex}>
             Not yet reviewed by your coach. The instructions and suggested amounts may change.
           </AppText>
         </View>
       )}
 
-      <Card style={styles.demo} testID="exercise-demo">
-        <Ionicons name="videocam-outline" size={28} color={colors.gold} />
+      <View style={styles.demo} testID="exercise-demo">
+        <Glow size={220} strength={0.12} />
+        <Ionicons name={CATEGORY_ICONS[exercise.categories[0]] ?? "fitness"} size={120} color="rgba(212,175,55,0.08)" style={styles.watermark} />
+        <View style={styles.play}>
+          <Ionicons name="videocam-outline" size={26} color={colors.gold} />
+        </View>
         <AppText variant="bodyStrong">Demonstration coming soon</AppText>
         <AppText variant="small" tone="secondary" style={styles.center}>
           {exercise.demo.kind === "diagram" ? exercise.demo.alt : "Your coach will record this one."}
         </AppText>
-      </Card>
+      </View>
 
       <View style={styles.facts}>
-        {facts.map(([label, value, testID]) => (
+        {facts.map(([label, value, testID, icon]) => (
           <View key={label} style={styles.factCell}>
             <View style={styles.fact} testID={testID}>
-              <AppText variant="eyebrow" tone="muted">
+              <Ionicons name={icon} size={18} color={colors.gold} />
+              <AppText variant="eyebrow" tone="muted" style={styles.factLabel}>
                 {label}
               </AppText>
               <AppText variant="bodyStrong">{value}</AppText>
@@ -76,8 +97,16 @@ export default function ExerciseScreen() {
         ))}
       </View>
 
-      <Section title="Target muscles" testID="section-muscles">
-        <AppText tone="secondary">{exercise.primaryMuscles.map((muscle) => MUSCLE_NAMES[muscle]).join(", ")}</AppText>
+      <Section title="Target muscles" icon="body-outline" testID="section-muscles">
+        <View style={styles.chips}>
+          {exercise.primaryMuscles.map((muscle) => (
+            <View key={muscle} style={styles.chip}>
+              <AppText variant="small" style={styles.chipText}>
+                {MUSCLE_NAMES[muscle]}
+              </AppText>
+            </View>
+          ))}
+        </View>
         {exercise.secondaryMuscles.length > 0 && (
           <AppText variant="small" tone="muted">
             Also works: {exercise.secondaryMuscles.map((muscle) => MUSCLE_NAMES[muscle]).join(", ")}
@@ -85,26 +114,26 @@ export default function ExerciseScreen() {
         )}
       </Section>
 
-      <Section title="How to do it" testID="section-steps">
+      <Section title="How to do it" icon="list-outline" testID="section-steps">
         <Lines lines={exercise.steps} numbered />
       </Section>
 
-      <Section title="Breathing" testID="section-breathing">
+      <Section title="Breathing" icon="leaf-outline" testID="section-breathing">
         <Lines lines={exercise.breathing} />
       </Section>
 
       {exercise.tips.length > 0 && (
-        <Section title="Technique tips" testID="section-tips">
+        <Section title="Technique tips" icon="bulb-outline" testID="section-tips">
           <Lines lines={exercise.tips} />
         </Section>
       )}
 
-      <Section title="Common mistakes" testID="section-mistakes">
+      <Section title="Common mistakes" icon="warning-outline" testID="section-mistakes">
         <Lines lines={exercise.mistakes} />
       </Section>
 
       {alternatives.length > 0 && (
-        <Section title="Alternatives" testID="section-alternatives">
+        <Section title="Alternatives" icon="swap-horizontal-outline" testID="section-alternatives">
           {alternatives.map((alternative) => (
             <Pressable
               key={alternative.slug}
@@ -119,6 +148,9 @@ export default function ExerciseScreen() {
               testID={`alternative-${alternative.slug}`}
               style={({ pressed }) => [styles.alternative, pressed && styles.pressed]}
             >
+              <View style={styles.altIcon}>
+                <Ionicons name={CATEGORY_ICONS[alternative.categories[0]] ?? "fitness"} size={18} color={colors.gold} />
+              </View>
               <AppText variant="bodyStrong" style={styles.flex}>
                 {alternative.name}
               </AppText>
@@ -132,26 +164,63 @@ export default function ExerciseScreen() {
 }
 
 const styles = StyleSheet.create({
+  titleBlock: { gap: spacing.sm },
   pending: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.sm,
     borderWidth: 1,
     borderColor: "rgba(212,175,55,0.4)",
     backgroundColor: colors.goldTint,
     borderRadius: radius.md,
     padding: spacing.md,
   },
-  demo: { alignItems: "center", gap: spacing.sm, paddingVertical: spacing.xxl },
+  demo: {
+    aspectRatio: 16 / 10,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    padding: spacing.xl,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: "rgba(212,175,55,0.3)",
+    backgroundColor: "#100d05",
+    overflow: "hidden",
+  },
+  watermark: { position: "absolute", left: -10, bottom: -20 },
+  play: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: "rgba(212,175,55,0.5)",
+    backgroundColor: colors.goldTint,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   center: { textAlign: "center" },
   facts: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -spacing.xs },
   factCell: { width: "50%", padding: spacing.xs },
   fact: {
     gap: spacing.xs,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceRaised,
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: radius.md,
     padding: spacing.md,
-    minHeight: 72,
+    minHeight: 96,
   },
+  factLabel: { letterSpacing: 1.2 },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  chip: {
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.goldTint,
+    borderWidth: 1,
+    borderColor: "rgba(212,175,55,0.35)",
+  },
+  chipText: { color: colors.goldLight, fontWeight: "700" },
   alternative: {
     flexDirection: "row",
     alignItems: "center",
@@ -160,7 +229,15 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: radius.md,
-    padding: spacing.lg,
+    padding: spacing.md,
+  },
+  altIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.sm,
+    backgroundColor: colors.goldTint,
+    alignItems: "center",
+    justifyContent: "center",
   },
   pressed: { borderColor: colors.gold },
   flex: { flex: 1 },

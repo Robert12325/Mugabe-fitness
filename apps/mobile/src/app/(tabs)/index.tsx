@@ -1,5 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { CATALOGUE, MODES, type CategorySlug, type WorkoutModeId } from "@mugabe/fitness-content";
+import { CATALOGUE, MODES, type WorkoutModeId } from "@mugabe/fitness-content";
 import { router, type Href } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -9,6 +9,7 @@ import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
 import { SessionNotice } from "@/components/SessionNotice";
+import { CATEGORY_ICONS } from "@/components/workouts/look";
 import { colors, radius, spacing } from "@/theme";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -201,18 +202,6 @@ function QuickTiles() {
     </View>
   );
 }
-
-const CATEGORY_ICONS: Record<CategorySlug, IconName> = {
-  chest: "fitness",
-  back: "body",
-  shoulders: "barbell",
-  "biceps-triceps": "barbell",
-  arms: "hand-left",
-  "legs-glutes": "walk",
-  "abs-core": "flame",
-  "full-body": "accessibility",
-  "cardio-conditioning": "heart",
-};
 
 const MODE_TABS: { id: WorkoutModeId; label: string }[] = [
   { id: "equipment", label: "Gym" },
