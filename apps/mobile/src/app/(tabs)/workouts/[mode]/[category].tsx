@@ -2,12 +2,13 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { CATALOGUE, DIFFICULTY_NAMES, getCategory, getMode, type Difficulty } from "@mugabe/fitness-content";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { AppText } from "@/components/AppText";
 import { Card } from "@/components/Card";
 import { Glow } from "@/components/Glow";
 import { Screen } from "@/components/Screen";
 import { ExerciseRow } from "@/components/workouts/ExerciseRow";
+import { equipmentOptions, matchesEquipment, type EquipmentOption } from "@/components/workouts/filters";
 import { CATEGORY_ICONS, DIFFICULTY_COLORS } from "@/components/workouts/look";
 import { WorkoutNotFound } from "@/components/workouts/WorkoutNotFound";
 import { colors, radius, spacing } from "@/theme";
@@ -20,13 +21,17 @@ export default function WorkoutCategoryScreen() {
   const mode = getMode(String(params.mode));
   const category = getCategory(String(params.mode), String(params.category));
   const [level, setLevel] = useState<Difficulty | "all">("all");
+  const [kit, setKit] = useState<EquipmentOption["id"] | "all">("all");
 
   if (!mode || !category) return <WorkoutNotFound title="Category not found" testID="screen-workout-category" />;
 
   const exercises = CATALOGUE.published(mode.id, category.slug);
-  // Filters only for difficulties this list actually has.
+  // Filters only for difficulties and equipment this list actually has.
   const levels = DIFFICULTY_ORDER.filter((difficulty) => exercises.some((exercise) => exercise.difficulty === difficulty));
-  const shown = level === "all" ? exercises : exercises.filter((exercise) => exercise.difficulty === level);
+  const kits = equipmentOptions(exercises);
+  const shown = exercises.filter(
+    (exercise) => (level === "all" || exercise.difficulty === level) && matchesEquipment(exercise, kit),
+  );
 
   return (
     <Screen testID="screen-workout-category" edges={["left", "right"]}>
@@ -77,6 +82,60 @@ export default function WorkoutCategoryScreen() {
         </View>
       )}
 
+      {kits.length > 1 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.kitScroll}
+          contentContainerStyle={styles.kitRow}
+          accessibilityRole="tablist"
+          accessibilityLabel="Filter by equipment"
+          testID="equipment-filters"
+        >
+          {([{ id: "all", name: "Any equipment", count: exercises.length }, ...kits] as const).map((option) => {
+            const selected = option.id === kit;
+            return (
+              <Pressable
+                key={option.id}
+                onPress={() => setKit(option.id)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected }}
+                accessibilityLabel={`${option.name}, ${option.count} ${option.count === 1 ? "exercise" : "exercises"}`}
+                testID={`equipment-${option.id}`}
+                style={[styles.kitChip, selected && styles.kitChipSelected]}
+              >
+                <AppText variant="small" style={{ fontWeight: "700", color: selected ? colors.onGold : colors.textSecondary }}>
+                  {option.name}
+                </AppText>
+                <AppText variant="small" style={{ color: selected ? colors.onGold : colors.textMuted }}>
+                  {option.count}
+                </AppText>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
+
+      {exercises.length && shown.length === 0 ? (
+        <Card testID="exercises-no-match">
+          <AppText variant="heading">No exercises match these filters</AppText>
+          <AppText tone="secondary">Try another level or piece of equipment.</AppText>
+          <Pressable
+            onPress={() => {
+              setLevel("all");
+              setKit("all");
+            }}
+            accessibilityRole="button"
+            testID="filters-clear"
+            hitSlop={8}
+          >
+            <AppText variant="button" tone="gold">
+              Clear filters
+            </AppText>
+          </Pressable>
+        </Card>
+      ) : null}
+
       {exercises.length ? (
         <View style={{ gap: spacing.md }} testID="exercise-list">
           {shown.map((exercise) => (
@@ -113,6 +172,21 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   heroRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  // Bleeds to the screen edges so chips scroll from edge to edge.
+  kitScroll: { marginHorizontal: -spacing.xl, flexGrow: 0 },
+  kitRow: { gap: spacing.sm, paddingHorizontal: spacing.xl },
+  kitChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    minHeight: 36,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceRaised,
+  },
+  kitChipSelected: { backgroundColor: colors.gold, borderColor: colors.gold },
   heroText: { flex: 1, gap: 2 },
   icon: {
     width: 52,

@@ -17,6 +17,7 @@ import { Glow } from "@/components/Glow";
 import { Screen } from "@/components/Screen";
 import { DifficultyPill } from "@/components/workouts/DifficultyPill";
 import { CATEGORY_ICONS } from "@/components/workouts/look";
+import { RestTimer } from "@/components/workouts/RestTimer";
 import { Lines, Section } from "@/components/workouts/Section";
 import { WorkoutNotFound } from "@/components/workouts/WorkoutNotFound";
 import { colors, radius, spacing } from "@/theme";
@@ -96,6 +97,8 @@ export default function ExerciseScreen() {
           </View>
         ))}
       </View>
+
+      {exercise.restSeconds > 0 ? <RestTimer key={exercise.slug} seconds={exercise.restSeconds} /> : null}
 
       <Section title="Target muscles" icon="body-outline" testID="section-muscles">
         <View style={styles.chips}>

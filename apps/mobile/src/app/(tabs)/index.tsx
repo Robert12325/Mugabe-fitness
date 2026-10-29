@@ -1,21 +1,21 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { CATALOGUE, MODES, type WorkoutModeId } from "@mugabe/fitness-content";
-import { router, type Href } from "expo-router";
+import { router } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import { MEMBERSHIP_STATUS } from "@/account/membership";
 import { useAuth } from "@/auth/AuthProvider";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
 import { StatStrip } from "@/components/progress/StatStrip";
+import { TodayCard } from "@/components/progress/TodayCard";
+import { QuickTiles } from "@/components/QuickTiles";
 import { SessionNotice } from "@/components/SessionNotice";
 import { useDaily } from "@/daily/DailyProvider";
 import { localToday } from "@/lib/daily";
 import { CATEGORY_ICONS } from "@/components/workouts/look";
 import { colors, radius, spacing } from "@/theme";
-
-type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
 /**
  * Home: a dashboard of the things the app really has. Every number shown is
@@ -39,6 +39,8 @@ export default function HomeScreen() {
       <SessionNotice />
 
       <CoachingCard />
+
+      <TodaySection />
 
       <QuickTiles />
 
@@ -113,6 +115,9 @@ function Header() {
 /** The coach's photo with the member's program, or a way in for visitors. */
 function CoachingCard() {
   const { state } = useAuth();
+  // On narrow phones (about 360 pt or less) the text side needs more room,
+  // or "transformation" breaks mid-word.
+  const narrow = useWindowDimensions().width < 380;
   const signedIn = state.status === "signedIn";
   const signedOut = state.status === "signedOut";
   const membership = signedIn ? state.account.membership : null;
@@ -132,11 +137,11 @@ function CoachingCard() {
         <View style={[styles.fade, { left: "48%", opacity: 0.55 }]} />
         <View style={[styles.fade, { left: "58%", opacity: 0.25 }]} />
 
-        <View style={styles.coachingText}>
+        <View style={[styles.coachingText, narrow && styles.coachingTextNarrow]}>
           <AppText variant="eyebrow" tone="gold">
             {signedIn ? "Your coaching" : "Personal coaching"}
           </AppText>
-          <AppText variant="title" numberOfLines={3} style={styles.coachingTitle}>
+          <AppText variant="title" numberOfLines={3} style={[styles.coachingTitle, narrow && styles.coachingTitleNarrow]}>
             {signedIn ? membership?.programName || "Mugabe Fitness" : signedOut ? "Start your transformation" : "Train with purpose"}
           </AppText>
           {status ? (
@@ -179,32 +184,23 @@ function CoachingCard() {
   );
 }
 
-const TILES: { label: string; hint: string; icon: IconName; href: Href }[] = [
-  { label: "Gym", hint: "Gym workouts", icon: "barbell-outline", href: "/workouts/equipment" },
-  { label: "No kit", hint: "No-equipment workouts", icon: "body-outline", href: "/workouts/no-equipment" },
-  { label: "Program", hint: "Open my program", icon: "calendar-outline", href: "/program" },
-  { label: "Progress", hint: "Open my progress", icon: "stats-chart-outline", href: "/progress" },
-];
+/** Today from the member's own log, once it has loaded. */
+function TodaySection() {
+  const { state: auth } = useAuth();
+  const { state } = useDaily();
 
-/** Four shortcuts, like the quick actions in a fitness app's home. */
-function QuickTiles() {
+  if (auth.status !== "signedIn" || state.status !== "ready") return null;
+
+  const today = localToday();
+
   return (
-    <View style={styles.tiles}>
-      {TILES.map((tile) => (
-        <Pressable
-          key={tile.label}
-          onPress={() => router.navigate(tile.href)}
-          accessibilityRole="button"
-          accessibilityLabel={tile.hint}
-          style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}
-        >
-          <Ionicons name={tile.icon} size={24} color={colors.gold} />
-          <AppText variant="small" numberOfLines={1} style={styles.tileLabel}>
-            {tile.label}
-          </AppText>
-        </Pressable>
-      ))}
-    </View>
+    <TodayCard
+      today={today}
+      entry={state.data.log.find((entry) => entry.on === today) ?? null}
+      weightGrams={state.data.weights.find((entry) => entry.on === today)?.grams ?? null}
+      onStartWorkout={() => router.navigate("/workouts")}
+      onLogToday={() => router.push({ pathname: "/log-day", params: { on: today } })}
+    />
   );
 }
 
@@ -363,6 +359,9 @@ const styles = StyleSheet.create({
   coachingText: { width: "62%", paddingHorizontal: spacing.xl, gap: spacing.sm },
   // Fits "Start your transformation" in the narrow side of the card.
   coachingTitle: { fontSize: 22, lineHeight: 26 },
+  // Wider over the faded edge of the photo, which stays dark enough to read on.
+  coachingTextNarrow: { width: "72%", paddingHorizontal: spacing.lg },
+  coachingTitleNarrow: { fontSize: 20, lineHeight: 24 },
   status: {
     alignSelf: "flex-start",
     flexDirection: "row",
@@ -388,21 +387,7 @@ const styles = StyleSheet.create({
   coachingActions: { flexDirection: "row", gap: spacing.md, padding: spacing.lg, paddingTop: 0 },
   action: { flex: 1 },
 
-  tiles: { flexDirection: "row", gap: spacing.sm },
-  tile: {
-    flex: 1,
-    aspectRatio: 1,
-    maxHeight: 96,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceRaised,
-  },
   tilePressed: { borderColor: colors.gold },
-  tileLabel: { color: colors.text, fontWeight: "700" },
 
   section: { gap: spacing.md },
   sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
