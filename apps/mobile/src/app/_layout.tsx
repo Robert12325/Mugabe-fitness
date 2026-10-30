@@ -13,6 +13,8 @@ import { View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "@/auth/AuthProvider";
 import { DailyProvider } from "@/daily/DailyProvider";
+import { ReleaseProvider } from "@/release/ReleaseProvider";
+import { ReleaseGate } from "@/release/UpdateRequired";
 import { colors, fonts } from "@/theme";
 
 export default function RootLayout() {
@@ -33,38 +35,43 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <DailyProvider>
-          <StatusBar style="light" />
-          <Stack
-            screenOptions={{
-              headerStyle: { backgroundColor: colors.background },
-              headerTintColor: colors.gold,
-              headerTitleStyle: { fontFamily: fonts.heavy, color: colors.text },
-              headerShadowVisible: false,
-              contentStyle: { backgroundColor: colors.background },
-            }}
-          >
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="sign-in"
-              options={{ presentation: "modal", title: "Sign in" }}
-            />
-            <Stack.Screen
-              name="register"
-              options={{ presentation: "modal", title: "Create account" }}
-            />
-            <Stack.Screen
-              name="log-day"
-              options={{ presentation: "modal", title: "Log your day" }}
-            />
-            <Stack.Screen
-              name="delete-account"
-              options={{ presentation: "modal", title: "Delete account" }}
-            />
-          </Stack>
-        </DailyProvider>
-      </AuthProvider>
+      {/* Outermost, so an "Update required" build shows only that screen. */}
+      <ReleaseProvider>
+        <ReleaseGate>
+          <AuthProvider>
+            <DailyProvider>
+              <StatusBar style="light" />
+              <Stack
+                screenOptions={{
+                  headerStyle: { backgroundColor: colors.background },
+                  headerTintColor: colors.gold,
+                  headerTitleStyle: { fontFamily: fonts.heavy, color: colors.text },
+                  headerShadowVisible: false,
+                  contentStyle: { backgroundColor: colors.background },
+                }}
+              >
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="sign-in"
+                  options={{ presentation: "modal", title: "Sign in" }}
+                />
+                <Stack.Screen
+                  name="register"
+                  options={{ presentation: "modal", title: "Create account" }}
+                />
+                <Stack.Screen
+                  name="log-day"
+                  options={{ presentation: "modal", title: "Log your day" }}
+                />
+                <Stack.Screen
+                  name="delete-account"
+                  options={{ presentation: "modal", title: "Delete account" }}
+                />
+              </Stack>
+            </DailyProvider>
+          </AuthProvider>
+        </ReleaseGate>
+      </ReleaseProvider>
     </SafeAreaProvider>
   );
 }

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "track": "staging",
+  "android": {
+    "apk": {
+      "minimumVersionCode": 0,
+      "latest": null
+    },
+    "play": {
+      "minimumVersionCode": 0,
+      "storeUrl": null
+    }
+  }
+}

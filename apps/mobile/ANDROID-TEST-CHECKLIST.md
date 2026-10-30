@@ -10,6 +10,10 @@ the phone model, Android version and APK build ID at the top.
 
 Use a **test account**: the APK talks to the live website.
 
+A staging APK installs as **Mugabe Fitness Staging**, beside the real app;
+Profile shows which build it is. For over-the-air updates, rollback and the
+version notices, also run the update checklist in `RELEASING.md`.
+
 ## 1. Install and first launch
 - [ ] Install from the EAS link (allow "install unknown apps" for the browser).
 - [ ] App icon and name show as "Mugabe Fitness"; splash is black with the gold mark.

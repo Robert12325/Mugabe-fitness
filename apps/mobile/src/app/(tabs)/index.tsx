@@ -14,6 +14,7 @@ import { QuickTiles } from "@/components/QuickTiles";
 import { SessionNotice } from "@/components/SessionNotice";
 import { useDaily } from "@/daily/DailyProvider";
 import { localToday } from "@/lib/daily";
+import { UpdateNotices } from "@/release/UpdateNotices";
 import { CATEGORY_ICONS } from "@/components/workouts/look";
 import { colors, radius, spacing } from "@/theme";
 
@@ -37,6 +38,8 @@ export default function HomeScreen() {
       </AppText>
 
       <SessionNotice />
+
+      <UpdateNotices />
 
       <CoachingCard />
 

@@ -69,11 +69,12 @@ npm run doctor         # Expo's dependency and config health check
 
 ## Building
 
-Store builds use EAS Build (`npx eas-cli@latest build`), which needs an Expo
-account and, for release, Apple and Google developer accounts. Before the
-first build, set the store identifiers in `app.json`
-(`ios.bundleIdentifier`, `android.package`). They are not set yet because
-they are permanent once published.
+Builds use EAS Build (`npx eas-cli@latest build`) and updates use EAS
+Update. The build profiles (`staging`, `production-apk`, `production`),
+their update channels, the separate staging app, signing, the publish
+script and the approval steps are all in [RELEASING.md](RELEASING.md).
+The store identifier is `com.mugabefitness.app` (staging:
+`com.mugabefitness.app.staging`), permanent once published.
 
 To check the JavaScript bundles build without a device:
 

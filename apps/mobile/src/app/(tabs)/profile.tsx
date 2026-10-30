@@ -1,5 +1,4 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import Constants from "expo-constants";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Linking, Pressable, StyleSheet, View } from "react-native";
@@ -13,13 +12,14 @@ import { Screen } from "@/components/Screen";
 import { SignedOutPrompt } from "@/components/SignedOutPrompt";
 import { websiteUrl } from "@/config/website";
 import { confirmAction } from "@/lib/dialogs";
+import { buildLabel } from "@/release/build-info";
+import { useRelease } from "@/release/ReleaseProvider";
 import { colors, radius, spacing } from "@/theme";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
 const ACCOUNT_PAGE = websiteUrl("/account");
 const PRIVACY_PAGE = websiteUrl("/privacy");
-const APP_VERSION = Constants.expoConfig?.version;
 
 function initialsOf(name: string) {
   return name
@@ -38,6 +38,7 @@ function memberSince(iso: string) {
 export default function ProfileScreen() {
   const { state, signOut } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
+  const version = buildLabel(useRelease().info);
 
   function confirmSignOut() {
     confirmAction({
@@ -60,6 +61,7 @@ export default function ProfileScreen() {
         {state.status === "unverified" && (
           <Button label="Sign out of this device" variant="ghost" onPress={confirmSignOut} />
         )}
+        <VersionLine label={version} />
       </Screen>
     );
   }
@@ -180,13 +182,18 @@ export default function ProfileScreen() {
         </AppText>
       </Pressable>
 
-      {APP_VERSION ? (
-        <AppText variant="small" tone="muted" style={styles.center}>
-          Mugabe Fitness app {APP_VERSION}
-        </AppText>
-      ) : null}
+      <VersionLine label={version} />
     </Screen>
   );
+}
+
+/** What is installed, so a tester can say exactly which build they have. */
+function VersionLine({ label }: { label: string | null }) {
+  return label ? (
+    <AppText variant="small" tone="muted" selectable style={styles.center} testID="profile-version">
+      {label}
+    </AppText>
+  ) : null;
 }
 
 function Detail({ icon, label, value, last = false }: { icon: IconName; label: string; value: string; last?: boolean }) {

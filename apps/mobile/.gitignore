@@ -6,6 +6,8 @@ node_modules/
 # Expo
 .expo/
 dist/
+# Update bundles made by scripts/publish-update.mjs
+dist-update/
 web-build/
 expo-env.d.ts
 

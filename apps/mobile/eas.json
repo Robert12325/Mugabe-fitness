@@ -4,17 +4,38 @@
     "appVersionSource": "remote"
   },
   "build": {
-    "preview": {
-      "distribution": "internal",
-      "android": { "buildType": "apk" },
-      "env": { "EXPO_PUBLIC_API_URL": "https://mugabe-fitness.vercel.app" }
-    },
-    "production": {
+    "base": {
       "autoIncrement": true,
       "env": { "EXPO_PUBLIC_API_URL": "https://mugabe-fitness.vercel.app" }
+    },
+    "staging": {
+      "extends": "base",
+      "distribution": "internal",
+      "channel": "staging",
+      "environment": "preview",
+      "env": { "APP_VARIANT": "staging" },
+      "android": { "buildType": "apk" }
+    },
+    "production-apk": {
+      "extends": "base",
+      "distribution": "internal",
+      "channel": "production-apk",
+      "environment": "production",
+      "env": { "APP_VARIANT": "production" },
+      "android": { "buildType": "apk" }
+    },
+    "production": {
+      "extends": "base",
+      "distribution": "store",
+      "channel": "production-play",
+      "environment": "production",
+      "env": { "APP_VARIANT": "production" },
+      "android": { "buildType": "app-bundle" }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": { "track": "internal", "releaseStatus": "draft" }
+    }
   }
 }
